@@ -1,0 +1,14 @@
+{
+  "name": "진주랭킹",
+  "short_name": "진주랭킹",
+  "description": "진주사람들의 취향, 데이터가 되다!",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf9f6",
+  "theme_color": "#faf9f6",
+  "lang": "ko",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
