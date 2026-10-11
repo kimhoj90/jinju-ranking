@@ -1294,6 +1294,9 @@ select {
 }
 .champion-icon {
   margin-top: 14px;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 74px;
+  line-height: 1;
 }
 .result-title {
   max-width: 850px;

@@ -4,7 +4,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import CandidateMedia from '../components/CandidateMedia';
 import LoginPrompt, { loginPath } from '../components/LoginPrompt';
 import Modal from '../components/Modal';
-import TrophyJ from '../components/TrophyJ';
 import { useAuth, useSite, useUi } from '../context/AppContext';
 import { api } from '../lib/api';
 import { friendlyError } from '../lib/errors';
@@ -415,8 +414,8 @@ export default function Result() {
   return (
     <main className="wrap result">
       <span className="eyebrow">YOUR NUMBER ONE</span>
-      <div className="champion-icon">
-        <TrophyJ size={74} />
+      <div className="champion-icon" role="img" aria-label="우승 트로피">
+        🏆
       </div>
       <h1 className="result-title">
         <span>{cup.title}</span> 1위는!
