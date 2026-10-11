@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api } from '../lib/api';
 import { friendlyError } from '../lib/errors';
-import type { AdBanner, PublicStats, SessionUser, SiteSettings, Worldcup } from '../lib/types';
+import type { AdBanner, Profile, PublicStats, SessionUser, SiteSettings, Worldcup } from '../lib/types';
 
 // ---------------------------------------------------------------------------
 // 로그인 상태
@@ -10,6 +10,9 @@ interface AuthState {
   user: SessionUser | null;
   isAdmin: boolean;
   ready: boolean;
+  profile: Profile | null;
+  authError: string;
+  refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -18,34 +21,62 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [authError, setAuthError] = useState('');
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    let alive = true;
-    const apply = async (u: SessionUser | null) => {
-      const admin = u ? await api.isAdmin() : false;
-      if (!alive) return;
+  const revision = useRef(0);
+  const apply = useCallback(async (u: SessionUser | null) => {
+    const ticket = ++revision.current;
+    setReady(false);
+    try {
+      const [admin, p] = u ? await Promise.all([api.isAdmin(), api.getProfile()]) : [false, null];
+      if (ticket !== revision.current) return;
       setUser(u);
       setIsAdmin(admin);
-      setReady(true);
-    };
-    api.getUser().then(apply, () => apply(null));
-    const off = api.onAuthChange((u) => {
-      void apply(u);
-    });
-    return () => {
-      alive = false;
-      off();
-    };
+      setProfile(p);
+      setAuthError('');
+    } catch (e) {
+      if (ticket !== revision.current) return;
+      setUser(u);
+      setProfile(null);
+      setIsAdmin(false);
+      setAuthError(friendlyError(e));
+    } finally {
+      if (ticket === revision.current) setReady(true);
+    }
   }, []);
+  const refreshProfile = useCallback(async () => {
+    await apply(await api.getUser());
+  }, [apply]);
+  useEffect(() => {
+    void refreshProfile();
+    const off = api.onAuthChange((u) => void apply(u));
+    return () => {
+      off();
+      revision.current++;
+    };
+  }, [apply, refreshProfile]);
 
   const signOut = useCallback(async () => {
     await api.signOut();
     setUser(null);
+    setProfile(null);
     setIsAdmin(false);
   }, []);
 
-  const value = useMemo(() => ({ user, isAdmin, ready, signOut }), [user, isAdmin, ready, signOut]);
+  const value = useMemo(
+    () => ({
+      user,
+      isAdmin,
+      ready,
+      profile,
+      authError,
+      refreshProfile,
+      signOut,
+    }),
+    [user, isAdmin, ready, profile, authError, refreshProfile, signOut],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
@@ -101,7 +132,16 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   const findBySlug = useCallback((slug: string | undefined) => worldcups.find((w) => w.slug === slug), [worldcups]);
 
   const value = useMemo(
-    () => ({ worldcups, stats, ads, settings, loading, error, refresh, findBySlug }),
+    () => ({
+      worldcups,
+      stats,
+      ads,
+      settings,
+      loading,
+      error,
+      refresh,
+      findBySlug,
+    }),
     [worldcups, stats, ads, settings, loading, error, refresh, findBySlug],
   );
   return <SiteContext.Provider value={value}>{children}</SiteContext.Provider>;

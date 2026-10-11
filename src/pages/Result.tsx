@@ -53,7 +53,10 @@ function BallotPanel({ cup, result }: { cup: Worldcup; result: FinishedResult })
     }
     const handled = handledResult.get(cup.id);
     if (handled?.finishedAt === result.finishedAt) {
-      setView({ kind: 'done', outcome: handled.outcome as 'created' | 'replaced' | 'kept' });
+      setView({
+        kind: 'done',
+        outcome: handled.outcome as 'created' | 'replaced' | 'kept',
+      });
       return;
     }
     let alive = true;
@@ -97,10 +100,13 @@ function BallotPanel({ cup, result }: { cup: Worldcup; result: FinishedResult })
         <b>이번 결과를 기록에 반영할까요?</b>
         <p className="muted">이 랭킹에 이미 반영한 결과가 있어요. 예를 고르면 이전 결과가 이번 결과로 바뀌고, 표는 계속 1개예요.</p>
         <div className="askactions">
-          <button className="secondary" onClick={() => {
-            handledResult.set(cup.id, result.finishedAt, 'kept');
-            setView({ kind: 'done', outcome: 'kept' });
-          }}>
+          <button
+            className="secondary"
+            onClick={() => {
+              handledResult.set(cup.id, result.finishedAt, 'kept');
+              setView({ kind: 'done', outcome: 'kept' });
+            }}
+          >
             아니오
           </button>
           <button className="primary" onClick={() => void submit(true)}>
@@ -113,7 +119,9 @@ function BallotPanel({ cup, result }: { cup: Worldcup; result: FinishedResult })
   if (view.kind === 'error') {
     return (
       <div className="ballotpanel">
-        <p className="error" role="alert">{view.message}</p>
+        <p className="error" role="alert">
+          {view.message}
+        </p>
         <button className="secondary" onClick={() => void submit(false)}>
           다시 시도
         </button>
@@ -156,7 +164,12 @@ function FeedbackModal({ cup, onClose }: { cup: Worldcup; onClose: () => void })
     setBusy(true);
     setError('');
     try {
-      await api.sendFeedback({ worldcupId: cup.id, type, body, candidateId: type === 'objection' ? candidateId || null : null });
+      await api.sendFeedback({
+        worldcupId: cup.id,
+        type,
+        body,
+        candidateId: type === 'objection' ? candidateId || null : null,
+      });
       setSent(true);
     } catch (err) {
       setError(friendlyError(err));
@@ -184,10 +197,22 @@ function FeedbackModal({ cup, onClose }: { cup: Worldcup; onClose: () => void })
       ) : (
         <form className="contactform" onSubmit={send}>
           <div className="segmented" role="radiogroup" aria-label="의견 종류">
-            <button type="button" role="radio" aria-checked={type === 'suggest'} className={type === 'suggest' ? 'active' : ''} onClick={() => setType('suggest')}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={type === 'suggest'}
+              className={type === 'suggest' ? 'active' : ''}
+              onClick={() => setType('suggest')}
+            >
               후보 추천
             </button>
-            <button type="button" role="radio" aria-checked={type === 'objection'} className={type === 'objection' ? 'active' : ''} onClick={() => setType('objection')}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={type === 'objection'}
+              className={type === 'objection' ? 'active' : ''}
+              onClick={() => setType('objection')}
+            >
               이의 제기
             </button>
           </div>
@@ -211,7 +236,9 @@ function FeedbackModal({ cup, onClose }: { cup: Worldcup; onClose: () => void })
               maxLength={FEEDBACK_MAX}
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder={type === 'suggest' ? '새로 들어갔으면 하는 후보와 이유를 적어주세요.' : '후보 정보가 틀렸거나 잘못된 후보가 있다면 알려주세요.'}
+              placeholder={
+                type === 'suggest' ? '새로 들어갔으면 하는 후보와 이유를 적어주세요.' : '후보 정보가 틀렸거나 잘못된 후보가 있다면 알려주세요.'
+              }
             />
             <small className="counter">
               {body.length}/{FEEDBACK_MAX}
@@ -287,7 +314,12 @@ function Comments({ cup, onFeedback }: { cup: Worldcup; onFeedback: () => void }
   const report = async (id: string) => {
     if (!confirm('이 댓글을 운영자에게 신고할까요?')) return;
     try {
-      await api.sendFeedback({ worldcupId: cup.id, type: 'report', body: '', commentId: id });
+      await api.sendFeedback({
+        worldcupId: cup.id,
+        type: 'report',
+        body: '',
+        commentId: id,
+      });
       toast('신고가 접수됐어요. 운영자가 확인할게요.');
     } catch (err) {
       toast(friendlyError(err));
@@ -298,7 +330,7 @@ function Comments({ cup, onFeedback }: { cup: Worldcup; onFeedback: () => void }
     <section className="community result-comments">
       <div className="community-head">
         <h3>
-          <MessageCircle size={20} /> 참여자들의 이야기 {items && items.length > 0 && <span>{items.length}</span>}
+          <MessageCircle size={20} /> 의견 나누기 {items && items.length > 0 && <span>{items.length}</span>}
         </h3>
         <button className="textbtn" onClick={onFeedback}>
           <Flag size={15} /> 의견 보내기
@@ -345,10 +377,31 @@ function Comments({ cup, onFeedback }: { cup: Worldcup; onFeedback: () => void }
                 <li key={c.id} className={c.is_mine ? 'mine' : ''}>
                   <p>{c.body}</p>
                   <div className="commentmeta">
-                    <span>익명</span>
+                    <span>{c.nickname}</span>
                     <time dateTime={c.created_at}>{timeAgo(c.created_at)}</time>
                     {c.is_mine && <b className="minetag">내 댓글</b>}
                     {c.hidden && <b className="hiddentag">운영자가 숨긴 댓글</b>}
+                    {!c.hidden && (
+                      <button
+                        className="textbtn comment-like"
+                        aria-label={`공감 ${c.likes}개`}
+                        aria-pressed={c.liked}
+                        disabled={busy}
+                        onClick={async () => {
+                          setBusy(true);
+                          try {
+                            await api.setCommentLike(c.id, !c.liked);
+                            await load();
+                          } catch (e) {
+                            setError(friendlyError(e));
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                      >
+                        {c.liked ? '♥' : '♡'} {c.likes}
+                      </button>
+                    )}
                     {c.is_mine ? (
                       <button className="textbtn" disabled={busy} onClick={() => void remove(c.id)}>
                         삭제

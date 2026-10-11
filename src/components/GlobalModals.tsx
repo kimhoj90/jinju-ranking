@@ -96,14 +96,21 @@ function ContributeModal({ onClose, onSurvey }: { onClose: () => void; onSurvey:
 }
 
 function AccountModal({ onClose }: { onClose: () => void }) {
-  const { signOut, isAdmin } = useAuth();
+  const { signOut, isAdmin, profile } = useAuth();
   const navigate = useNavigate();
   return (
     <Modal onClose={onClose} labelledBy="modal-title">
       <div className="loginicon">
         <Lock size={25} />
       </div>
-      <h2 id="modal-title">로그인되어 있어요</h2>
+      <h2 id="modal-title">{profile?.nickname || '닉네임 미설정'}</h2>
+      {profile?.blocked && <p className="error">이 계정은 이용이 제한됐어요.</p>}
+      <Link className="secondary full" to="/nickname" onClick={onClose}>
+        닉네임 변경
+      </Link>
+      <Link className="secondary full" to="/propose?mine=1" onClick={onClose}>
+        내 제안 목록
+      </Link>
       <p>순위 반영, 댓글, 의견 보내기, 랭킹 제안, 설문 올리기를 이용할 수 있어요.</p>
       {isAdmin && (
         <button
@@ -127,7 +134,11 @@ function AccountModal({ onClose }: { onClose: () => void }) {
         로그아웃
       </button>
       <small>
-        탈퇴·기록 삭제는 <Link to="/privacy" onClick={onClose}>개인정보처리방침</Link>의 문의처로 요청해주세요.
+        탈퇴·기록 삭제는{' '}
+        <Link to="/privacy" onClick={onClose}>
+          개인정보처리방침
+        </Link>
+        의 문의처로 요청해주세요.
       </small>
     </Modal>
   );

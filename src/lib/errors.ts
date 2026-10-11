@@ -1,5 +1,18 @@
 // 서버 오류를 사용자에게 보여줄 쉬운 말로 바꾼다.
 const MESSAGES: [RegExp, string][] = [
+  [/nickname_required/, '먼저 사이트에서 사용할 닉네임을 설정해주세요.'],
+  [/nickname_taken|profiles_nickname_unique/, '이미 사용 중인 닉네임이에요. 다른 이름을 골라주세요.'],
+  [/invalid_nickname/, '한글·영문·숫자로 1~10자 입력해주세요.'],
+  [/banned_nickname/, '사용할 수 없는 단어가 포함된 닉네임이에요.'],
+  [/nickname_cooldown/, '아직 닉네임을 변경할 수 없어요. 다음 변경 가능일을 확인해주세요.'],
+  [/account_blocked/, '운영자가 이용을 제한한 계정이에요. 문의를 통해 확인해주세요.'],
+  [/weekly_limit/, '이번 주 추천을 이미 사용했어요. 다음 월요일 오전 9시에 다시 추천해주세요.'],
+  [/invalid_youtube_url/, '유튜브 watch, youtu.be 또는 shorts 링크를 확인해주세요.'],
+  [/already_voted/, '이미 투표했어요. 선택은 바꿀 수 없어요.'],
+  [/already_reported/, '이미 신고한 영상이에요.'],
+  [/voting_closed/, '종료된 투표예요.'],
+  [/deleted_video/, '삭제된 영상은 복구할 수 없어요.'],
+  [/not_pending/, '이미 처리되거나 취소된 제안이에요.'],
   [/login_required|JWT|not authenticated/i, '로그인이 필요해요. 다시 로그인해주세요.'],
   [/daily_limit/, '오늘 보낼 수 있는 횟수를 모두 사용했어요. 내일 다시 시도해주세요.'],
   [/comments_user_id_worldcup_id_key/, '이 랭킹에는 이미 댓글을 남겼어요. 지우면 다시 쓸 수 있어요.'],

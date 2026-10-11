@@ -26,7 +26,12 @@ export default function RankingThumb({
   return (
     <div className={'auto-thumbnail' + (pair.length === 1 ? ' single' : '')}>
       {pair.map((c) => (
-        <img key={c.id} src={c.image_url} alt="" loading={loading} />
+        <div className="auto-candidate" key={c.id}>
+          <img src={c.image_url} alt="" loading={loading} />
+          <div className="auto-candidate-name">
+            <span>{c.name}</span>
+          </div>
+        </div>
       ))}
       {pair.length === 2 && <b>VS</b>}
     </div>

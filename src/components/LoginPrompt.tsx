@@ -12,6 +12,12 @@ export default function LoginPrompt({ message, next }: { message: string; next?:
     <div className="locked">
       <Lock size={23} />
       <p>{message}</p>
+      <p className="login-privacy-copy">
+        진주랭킹은 민감한 개인정보를 수집하지 않습니다.
+        <br />
+        로그인은 중복 참여를 막고, 더 정확한 진주랭킹을 만드는데 활용됩니다.
+      </p>
+      <Link to="/privacy">개인정보처리방침</Link>
       <Link className="primary" to={loginPath(next ?? location.pathname + location.search)}>
         카카오로 로그인
       </Link>

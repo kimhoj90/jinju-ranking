@@ -22,12 +22,20 @@ function check<T>(result: { data: T; error: unknown }): T {
 }
 
 function sortCandidates(cup: Worldcup): Worldcup {
-  return { ...cup, candidates: [...(cup.candidates ?? [])].sort((a, b) => a.sort_order - b.sort_order) };
+  return {
+    ...cup,
+    candidates: [...(cup.candidates ?? [])].sort((a, b) => a.sort_order - b.sort_order),
+  };
 }
 
 export function createSupabaseApi(url: string, key: string): Api {
   const sb: SupabaseClient = createClient(url, key, {
-    auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    auth: {
+      flowType: 'pkce',
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
   });
 
   const requireUser = async () => {
@@ -38,6 +46,78 @@ export function createSupabaseApi(url: string, key: string): Api {
 
   const api: Api = {
     mode: 'supabase',
+    async getProfile() {
+      return check(await sb.rpc('my_profile'));
+    },
+    async saveNickname(nickname) {
+      check(await sb.rpc('save_nickname', { p_nickname: nickname }));
+    },
+    async setCommentLike(id, liked) {
+      check(await sb.rpc('set_comment_like', { p_comment_id: id, p_liked: liked }));
+    },
+    async myProposals() {
+      const u = await requireUser();
+      return (
+        check(
+          await sb
+            .from('proposals')
+            .select('id,title,description,keywords,thumbnail_path,candidates,status,worldcup_id,created_at,review_note')
+            .eq('user_id', u.id)
+            .order('created_at', { ascending: false }),
+        ) ?? []
+      );
+    },
+    async cancelProposal(id) {
+      check(await sb.rpc('cancel_proposal', { p_id: id }));
+    },
+    async listDuels() {
+      return check(await sb.from('duels').select('*').order('created_at', { ascending: false })) ?? [];
+    },
+    async duelResult(id) {
+      return check(await sb.rpc('duel_result', { p_id: id }));
+    },
+    async voteDuel(id, choice) {
+      return check(await sb.rpc('vote_duel', { p_id: id, p_choice: choice }));
+    },
+    async adminSaveDuel(draft) {
+      const { id, ...fields } = draft;
+      check(id ? await sb.from('duels').update(fields).eq('id', id) : await sb.from('duels').insert(fields));
+    },
+    async tvPage(page) {
+      return check(await sb.rpc('tv_page', { p_page: page ?? null }));
+    },
+    async tvEligibility() {
+      return check(await sb.rpc('tv_eligibility'));
+    },
+    async recommendVideo(url) {
+      check(await sb.rpc('recommend_video', { p_url: url }));
+    },
+    async reportVideo(id) {
+      check(await sb.rpc('report_video', { p_id: id }));
+    },
+    async adminTv() {
+      return check(await sb.rpc('admin_tv'));
+    },
+    async adminModerateVideo(id, action) {
+      check(await sb.rpc('admin_moderate_video', { p_id: id, p_action: action }));
+    },
+    async adminAccounts() {
+      return check(await sb.rpc('admin_accounts'));
+    },
+    async adminBlockAccount(id, blocked) {
+      check(
+        await sb.rpc('admin_block_account', {
+          p_user_id: id,
+          p_blocked: blocked,
+        }),
+      );
+    },
+    async adminCommunitySettings() {
+      return check(await sb.from('community_settings').select('banned_words,nickname_days,report_threshold').eq('id', 1).single())!;
+    },
+    async adminSaveCommunitySettings(settings) {
+      check(await sb.from('community_settings').update(settings).eq('id', 1));
+    },
 
     async getUser() {
       const { data } = await sb.auth.getSession();
@@ -55,7 +135,10 @@ export function createSupabaseApi(url: string, key: string): Api {
     async signIn(provider, next) {
       if (provider !== 'kakao' && provider !== 'google') throw new Error('지원하지 않는 로그인 방식이에요.');
       const redirectTo = `${location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
-      const { error } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo } });
+      const { error } = await sb.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo },
+      });
       if (error) throw error;
     },
 
@@ -82,9 +165,17 @@ export function createSupabaseApi(url: string, key: string): Api {
     },
 
     async publicStats() {
-      const rows = check(await sb.rpc('public_worldcup_stats')) as { worldcup_id: string; completions: number; top_ids: string[] }[];
+      const rows = check(await sb.rpc('public_worldcup_stats')) as {
+        worldcup_id: string;
+        completions: number;
+        top_ids: string[];
+      }[];
       const out: Record<string, PublicStats> = {};
-      for (const r of rows ?? []) out[r.worldcup_id] = { completions: r.completions, top_ids: r.top_ids ?? [] };
+      for (const r of rows ?? [])
+        out[r.worldcup_id] = {
+          completions: r.completions,
+          top_ids: r.top_ids ?? [],
+        };
       return out;
     },
 
@@ -95,12 +186,17 @@ export function createSupabaseApi(url: string, key: string): Api {
       ]);
       return {
         ads: (check(ads) as AdBanner[]) ?? [],
-        settings: { contact_email: (check(settings) as { contact_email: string } | null)?.contact_email ?? '' },
+        settings: {
+          contact_email: (check(settings) as { contact_email: string } | null)?.contact_email ?? '',
+        },
       };
     },
 
     async recordView(worldcupId, visitor) {
-      await sb.rpc('record_view', { p_worldcup_id: worldcupId, p_visitor: visitor });
+      await sb.rpc('record_view', {
+        p_worldcup_id: worldcupId,
+        p_visitor: visitor,
+      });
     },
 
     async recordCompletion(worldcupId, visitor, champion, runner) {
@@ -127,7 +223,11 @@ export function createSupabaseApi(url: string, key: string): Api {
 
     async submitBallot(worldcupId, matches, replace) {
       const data = check(
-        await sb.rpc('submit_ballot', { p_worldcup_id: worldcupId, p_matches: matches, p_replace: replace }),
+        await sb.rpc('submit_ballot', {
+          p_worldcup_id: worldcupId,
+          p_matches: matches,
+          p_replace: replace,
+        }),
       ) as { status: SubmitStatus };
       return data.status;
     },
@@ -185,7 +285,14 @@ export function createSupabaseApi(url: string, key: string): Api {
     },
 
     async requestSurveyChange({ surveyId, kind, reason, payload }) {
-      check(await sb.from('survey_requests').insert({ survey_id: surveyId, kind, reason, payload: payload ?? null }));
+      check(
+        await sb.from('survey_requests').insert({
+          survey_id: surveyId,
+          kind,
+          reason,
+          payload: payload ?? null,
+        }),
+      );
     },
 
     async adminListWorldcups() {
@@ -209,14 +316,29 @@ export function createSupabaseApi(url: string, key: string): Api {
         featured: draft.featured,
         sort_order: draft.sort_order,
         thumbnail_url: draft.thumbnail_url,
-        candidates: draft.candidates.map((c) => ({ id: c.id ?? null, name: c.name.trim(), sub: c.sub.trim(), image_url: c.image_url })),
+        candidates: draft.candidates.map((c) => ({
+          id: c.id ?? null,
+          name: c.name.trim(),
+          sub: c.sub.trim(),
+          image_url: c.image_url,
+        })),
       };
-      return check(await sb.rpc('admin_save_worldcup', { p, p_proposal_id: proposalId ?? null })) as string;
+      return check(
+        await sb.rpc('admin_save_worldcup', {
+          p,
+          p_proposal_id: proposalId ?? null,
+        }),
+      ) as string;
     },
 
     async uploadMedia(blob, folder) {
       const path = `${folder}/${crypto.randomUUID()}.webp`;
-      check(await sb.storage.from('media').upload(path, blob, { contentType: 'image/webp', cacheControl: '31536000' }));
+      check(
+        await sb.storage.from('media').upload(path, blob, {
+          contentType: 'image/webp',
+          cacheControl: '31536000',
+        }),
+      );
       return sb.storage.from('media').getPublicUrl(path).data.publicUrl;
     },
 
@@ -229,8 +351,8 @@ export function createSupabaseApi(url: string, key: string): Api {
       return (check(await sb.from('proposals').select('*').order('created_at', { ascending: false }).limit(200)) as Proposal[]) ?? [];
     },
 
-    async adminRejectProposal(id) {
-      check(await sb.from('proposals').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', id));
+    async adminRejectProposal(id, note = '') {
+      check(await sb.rpc('reject_proposal', { p_id: id, p_note: note }));
     },
 
     async adminListFeedback() {
@@ -266,7 +388,12 @@ export function createSupabaseApi(url: string, key: string): Api {
         check(
           await sb
             .from('ad_banners')
-            .update({ title: ad.title.trim(), image_url: ad.image_url, link_url: ad.link_url.trim(), active: ad.active })
+            .update({
+              title: ad.title.trim(),
+              image_url: ad.image_url,
+              link_url: ad.link_url.trim(),
+              active: ad.active,
+            })
             .eq('slot', ad.slot),
         );
       }
@@ -285,10 +412,14 @@ export function createSupabaseApi(url: string, key: string): Api {
     },
 
     async adminReviewSurveyRequest(id, action) {
-      check(await sb.rpc('admin_review_survey_request', { p_id: id, p_action: action }));
+      check(
+        await sb.rpc('admin_review_survey_request', {
+          p_id: id,
+          p_action: action,
+        }),
+      );
     },
   };
 
   return api;
 }
-

@@ -1,3 +1,4 @@
+import { AccountsAdmin, DuelsAdmin, TvAdmin } from './CommunityAdmin';
 import { ArrowLeft, Check, ClipboardList, Eye, EyeOff, ImagePlus, Lock, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -29,11 +30,22 @@ const TABS = [
   ['comments', '댓글 관리'],
   ['ads', '광고·문의 설정'],
   ['surveys', '설문 승인함'],
+  ['duels', '양자택일'],
+  ['tv', '유튜브 TV'],
+  ['accounts', '계정·이용 규칙'],
 ] as const;
 type Tab = (typeof TABS)[number][0];
 
-const STATUS_LABEL = { draft: '초안', published: '공개', archived: '보관' } as const;
-const FEEDBACK_LABEL = { suggest: '후보 추천', objection: '이의 제기', report: '댓글 신고' } as const;
+const STATUS_LABEL = {
+  draft: '초안',
+  published: '공개',
+  archived: '보관',
+} as const;
+const FEEDBACK_LABEL = {
+  suggest: '후보 추천',
+  objection: '이의 제기',
+  report: '댓글 신고',
+} as const;
 
 function useAsync<T>(load: () => Promise<T>) {
   const [data, setData] = useState<T | null>(null);
@@ -59,7 +71,10 @@ function RankingsTab() {
   const navigate = useNavigate();
   const { data, error } = useAsync(async () => {
     const [cups, stats] = await Promise.all([api.adminListWorldcups(), api.adminStats()]);
-    return { cups, stats: Object.fromEntries(stats.map((s) => [s.worldcup_id, s])) as Record<string, AdminStats> };
+    return {
+      cups,
+      stats: Object.fromEntries(stats.map((s) => [s.worldcup_id, s])) as Record<string, AdminStats>,
+    };
   });
 
   return (
@@ -144,7 +159,10 @@ function EditRanking({ season }: { season?: boolean }) {
   const navigate = useNavigate();
   const { refresh } = useSite();
   const { toast } = useUi();
-  const [state, setState] = useState<{ draft: WorldcupDraft; locked: boolean } | null>(null);
+  const [state, setState] = useState<{
+    draft: WorldcupDraft;
+    locked: boolean;
+  } | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -199,7 +217,7 @@ function ProposalsTab() {
   const reject = async (p: Proposal) => {
     if (!confirm(`「${p.title}」 제안을 반려할까요? 홈에는 공개되지 않아요.`)) return;
     try {
-      await api.adminRejectProposal(p.id);
+      await api.adminRejectProposal(p.id, prompt('반려 사유 (선택)') ?? '');
       toast('반려했어요.');
       await reload();
     } catch (e) {
@@ -245,7 +263,7 @@ function ProposalsTab() {
           <ul>
             {done.map((p) => (
               <li key={p.id}>
-                {p.status === 'approved' ? '승인' : '반려'} · {p.title} · {formatDate(p.created_at)}
+                {p.status === 'approved' ? '승인' : p.status === 'cancelled' ? '취소' : '반려'} · {p.title} · {formatDate(p.created_at)}
               </li>
             ))}
           </ul>
@@ -285,13 +303,16 @@ function ReviewProposal() {
       onCancel={() => navigate('/admin?tab=proposals')}
       onReject={async () => {
         if (!confirm('이 제안을 반려할까요?')) return;
-        await api.adminRejectProposal(id);
+        await api.adminRejectProposal(id, prompt('반려 사유 (선택)') ?? '');
         toast('반려했어요.');
         navigate('/admin?tab=proposals');
       }}
       onSubmit={async (d) => {
         try {
-          const published = await publishProposalImages({ ...d, status: 'published' });
+          const published = await publishProposalImages({
+            ...d,
+            status: 'published',
+          });
           await api.adminSaveWorldcup(published, id);
         } catch (e) {
           throw new Error(friendlyError(e));
@@ -317,12 +338,20 @@ function FeedbackTab() {
   const [statusFilter, setStatusFilter] = useState<FeedbackStatus | 'all'>('new');
 
   const cupOf = (id: string) => data?.cups.find((c) => c.id === id);
-  const items = (data?.items ?? []).filter((f) => (!cupFilter || f.worldcup_id === cupFilter) && (statusFilter === 'all' || f.status === statusFilter));
+  const items = (data?.items ?? []).filter(
+    (f) => (!cupFilter || f.worldcup_id === cupFilter) && (statusFilter === 'all' || f.status === statusFilter),
+  );
 
   const setStatus = async (f: FeedbackItem, status: FeedbackStatus) => {
     try {
       await api.adminSetFeedbackStatus(f.id, status);
-      setData((d) => d && { ...d, items: d.items.map((x) => (x.id === f.id ? { ...x, status } : x)) });
+      setData(
+        (d) =>
+          d && {
+            ...d,
+            items: d.items.map((x) => (x.id === f.id ? { ...x, status } : x)),
+          },
+      );
     } catch (e) {
       toast(friendlyError(e));
     }
@@ -443,7 +472,13 @@ function CommentsTab() {
   const toggle = async (c: AdminComment) => {
     try {
       await api.adminSetCommentHidden(c.id, !c.hidden);
-      setData((d) => d && { ...d, comments: d.comments.map((x) => (x.id === c.id ? { ...x, hidden: !c.hidden } : x)) });
+      setData(
+        (d) =>
+          d && {
+            ...d,
+            comments: d.comments.map((x) => (x.id === c.id ? { ...x, hidden: !c.hidden } : x)),
+          },
+      );
     } catch (e) {
       toast(friendlyError(e));
     }
@@ -516,7 +551,10 @@ function CommentsTab() {
 function AdsTab() {
   const { refresh } = useSite();
   const { toast } = useUi();
-  const [config, setConfig] = useState<{ ads: AdBanner[]; settings: SiteSettings } | null>(null);
+  const [config, setConfig] = useState<{
+    ads: AdBanner[];
+    settings: SiteSettings;
+  } | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<number | null>(null);
   const [error, setError] = useState('');
@@ -525,7 +563,16 @@ function AdsTab() {
     api
       .getSiteConfig()
       .then((c) => {
-        const ads = [1, 2, 3, 4].map((slot) => c.ads.find((a) => a.slot === slot) ?? { slot, title: '', image_url: '', link_url: '', active: false });
+        const ads = [1, 2, 3, 4].map(
+          (slot) =>
+            c.ads.find((a) => a.slot === slot) ?? {
+              slot,
+              title: '',
+              image_url: '',
+              link_url: '',
+              active: false,
+            },
+        );
         setConfig({ ads, settings: c.settings });
       })
       .catch((e) => setError(friendlyError(e)));
@@ -534,7 +581,13 @@ function AdsTab() {
   if (!config) return error ? <p className="error">{error}</p> : <p className="muted">불러오는 중…</p>;
 
   const setAd = (slot: number, patch: Partial<AdBanner>) =>
-    setConfig((c) => c && { ...c, ads: c.ads.map((a) => (a.slot === slot ? { ...a, ...patch } : a)) });
+    setConfig(
+      (c) =>
+        c && {
+          ...c,
+          ads: c.ads.map((a) => (a.slot === slot ? { ...a, ...patch } : a)),
+        },
+    );
 
   const upload = async (slot: number, file: File | undefined) => {
     if (!file) return;
@@ -572,13 +625,21 @@ function AdsTab() {
   return (
     <section className="adsettings editor">
       <h2>광고 배너</h2>
-      <p className="muted">상단 왼쪽부터 1~4번 순서로 보여요. 이미지와 클릭할 주소를 등록하고 「노출」을 켜주세요. 가로:세로 약 3.2:1 이미지가 잘 맞아요.</p>
+      <p className="muted">
+        상단 왼쪽부터 1~4번 순서로 보여요. 이미지와 클릭할 주소를 등록하고 「노출」을 켜주세요. 가로:세로 약 3.2:1 이미지가 잘 맞아요.
+      </p>
       <div className="adeditgrid">
         {config.ads.map((ad) => (
           <div className="adedit" key={ad.slot}>
             <h3>배너 {ad.slot}</h3>
             <div className="adeditpreview">
-              {uploading === ad.slot ? <span>업로드 중…</span> : ad.image_url ? <img src={ad.image_url} alt={`배너 ${ad.slot} 미리보기`} /> : <ImagePlus size={32} />}
+              {uploading === ad.slot ? (
+                <span>업로드 중…</span>
+              ) : ad.image_url ? (
+                <img src={ad.image_url} alt={`배너 ${ad.slot} 미리보기`} />
+              ) : (
+                <ImagePlus size={32} />
+              )}
             </div>
             <label>
               이미지
@@ -595,7 +656,17 @@ function AdsTab() {
             <label className="checkbox">
               <input type="checkbox" checked={ad.active} onChange={(e) => setAd(ad.slot, { active: e.target.checked })} /> 노출
             </label>
-            <button className="textbtn" onClick={() => setAd(ad.slot, { title: '', image_url: '', link_url: '', active: false })}>
+            <button
+              className="textbtn"
+              onClick={() =>
+                setAd(ad.slot, {
+                  title: '',
+                  image_url: '',
+                  link_url: '',
+                  active: false,
+                })
+              }
+            >
               배너 비우기
             </button>
           </div>
@@ -610,7 +681,12 @@ function AdsTab() {
             type="email"
             placeholder="문의 받을 이메일 주소"
             value={config.settings.contact_email}
-            onChange={(e) => setConfig({ ...config, settings: { contact_email: e.target.value } })}
+            onChange={(e) =>
+              setConfig({
+                ...config,
+                settings: { contact_email: e.target.value },
+              })
+            }
           />
         </label>
       </div>
@@ -710,7 +786,13 @@ function AdminHome() {
     <>
       <div className="admintabs" role="tablist">
         {TABS.map(([key, label]) => (
-          <button key={key} role="tab" aria-selected={tab === key} className={tab === key ? 'active' : ''} onClick={() => setParams(key === 'rankings' ? {} : { tab: key })}>
+          <button
+            key={key}
+            role="tab"
+            aria-selected={tab === key}
+            className={tab === key ? 'active' : ''}
+            onClick={() => setParams(key === 'rankings' ? {} : { tab: key })}
+          >
             {label}
           </button>
         ))}
@@ -721,6 +803,9 @@ function AdminHome() {
       {tab === 'comments' && <CommentsTab />}
       {tab === 'ads' && <AdsTab />}
       {tab === 'surveys' && <SurveysTab />}
+      {tab === 'duels' && <DuelsAdmin />}
+      {tab === 'tv' && <TvAdmin />}
+      {tab === 'accounts' && <AccountsAdmin />}
     </>
   );
 }
@@ -750,7 +835,10 @@ export default function Admin() {
           <h2>관리자 전용 페이지예요.</h2>
           <p>운영자로 등록된 계정만 들어올 수 있어요. 처음 한 번, Supabase SQL Editor에서 아래 문장을 실행하면 이 계정이 운영자가 돼요.</p>
           <pre className="sqlbox">insert into public.admins (user_id) values ('{user.id}');</pre>
-          <button className="secondary" onClick={() => void navigator.clipboard?.writeText(`insert into public.admins (user_id) values ('${user.id}');`)}>
+          <button
+            className="secondary"
+            onClick={() => void navigator.clipboard?.writeText(`insert into public.admins (user_id) values ('${user.id}');`)}
+          >
             SQL 복사
           </button>
         </div>
@@ -766,4 +854,3 @@ export default function Admin() {
     </main>
   );
 }
-

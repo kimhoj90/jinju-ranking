@@ -86,6 +86,9 @@ export interface Ballot {
 export type SubmitStatus = 'created' | 'exists' | 'replaced';
 
 export interface CommentItem {
+  nickname: string;
+  likes: number;
+  liked: boolean;
   id: string;
   body: string;
   created_at: string;
@@ -141,7 +144,8 @@ export interface Proposal {
   keywords: string;
   thumbnail_path: string;
   candidates: ProposalCandidate[];
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  review_note?: string;
   worldcup_id: string | null;
   created_at: string;
 }
@@ -210,4 +214,62 @@ export interface WorldcupDraft {
   thumbnail_url: string;
   thumbnail_path?: string;
   candidates: DraftCandidate[];
+}
+
+export interface Profile {
+  nickname: string;
+  blocked: boolean;
+  nickname_changed_at: string;
+  next_change_at: string;
+}
+export interface AccountRow {
+  user_id: string;
+  nickname: string;
+  blocked: boolean;
+}
+export interface CommunitySettings {
+  banned_words: string[];
+  nickname_days: number;
+  report_threshold: number;
+}
+export interface Duel {
+  id: string;
+  question: string;
+  option_a: string;
+  option_b: string;
+  description_a: string;
+  description_b: string;
+  status: 'published' | 'archived';
+  created_at: string;
+}
+export type DuelDraft = Omit<Duel, 'id' | 'created_at'> & { id?: string };
+export interface DuelResult {
+  choice: 'A' | 'B' | null;
+  a?: number;
+  b?: number;
+  total?: number;
+}
+export interface TvItem {
+  id: number;
+  video_id: string | null;
+  nickname: string;
+  off: boolean;
+}
+export interface TvPage {
+  page: number;
+  pages: number;
+  items: TvItem[];
+}
+export interface TvEligibility {
+  can_recommend: boolean;
+  next_reset: string;
+}
+export interface AdminTv {
+  id: number;
+  video_id: string | null;
+  user_id: string;
+  nickname: string;
+  reports: number;
+  moderation: 'visible' | 'hidden' | 'restored' | 'deleted';
+  created_at: string;
 }

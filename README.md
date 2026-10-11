@@ -156,3 +156,10 @@ src/components/          공통 부품 (상단 메뉴, 에디터, 모달 등)
 src/styles.css           디자인
 public/images/           로고와 예시 썸네일
 ```
+
+## 커뮤니티 기능 변경안 (수정 브랜치)
+
+닉네임·공감·제안 보완·양자택일·유튜브 TV 변경 사항과 배포 순서는
+[`docs/community-update.md`](docs/community-update.md)에 정리했습니다.
+기존 운영 DB용 SQL은 `supabase/migrations/20261012_community.sql`입니다.
+사용자 요청 전에는 운영 DB 적용이나 main 병합을 하지 않습니다.

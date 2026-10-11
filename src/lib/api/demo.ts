@@ -1,3 +1,4 @@
+import { demoCommunity, demoMember, demoComment } from './demoCommunity';
 // 데모 모드: Supabase 키가 없을 때 이 브라우저의 저장소만으로 모든 기능을 흉내 낸다.
 // 실제 서비스에서는 쓰이지 않는다. 데이터는 이 기기에만 남는다.
 import { blobToDataUrl } from '../image';
@@ -150,6 +151,7 @@ const since = () => new Date(kstToday() + 'T00:00:00+09:00').getTime();
 
 export function resetDemo() {
   localStorage.removeItem(KEY);
+  localStorage.removeItem('jr:demo-community-v1');
 }
 
 export function createDemoApi(): Api {
@@ -161,6 +163,9 @@ export function createDemoApi(): Api {
 
   const api: Api = {
     mode: 'demo',
+    ...demoCommunity(requireUser, requireAdmin),
+    async myProposals() {const u=demoMember(requireUser()); return clone(load().proposals.filter(p=>p.user_id===u));},
+    async cancelProposal(id) {const u=demoMember(requireUser()),db=load(),p=db.proposals.find(p=>p.id===id&&p.user_id===u&&p.status==='pending');if(!p)throw Error('not_pending');p.status='cancelled';save(db);},
 
     async getUser() {
       const u = currentUser();
@@ -236,13 +241,13 @@ export function createDemoApi(): Api {
     },
 
     async getMyBallot(worldcupId) {
-      const user = requireUser();
+      const user = demoMember(requireUser());
       const b = load().ballots.find((x) => x.user_id === user && x.worldcup_id === worldcupId);
       return delay(b ? ({ worldcup_id: b.worldcup_id, champion_id: b.champion_id, runner_up_id: b.runner_up_id, updated_at: b.updated_at } satisfies Ballot) : null);
     },
 
     async submitBallot(worldcupId, matches, replace) {
-      const user = requireUser();
+      const user = demoMember(requireUser());
       const db = load();
       const cup = db.worldcups.find((w) => w.id === worldcupId && w.status === 'published');
       if (!cup) throw new Error('worldcup_not_found');
@@ -262,7 +267,7 @@ export function createDemoApi(): Api {
     },
 
     async getRanking(worldcupId) {
-      requireUser();
+      demoMember(requireUser());
       const db = load();
       const cup = db.worldcups.find((w) => w.id === worldcupId);
       if (!cup) throw new Error('worldcup_not_found');
@@ -270,17 +275,17 @@ export function createDemoApi(): Api {
     },
 
     async listComments(worldcupId) {
-      const user = requireUser();
+      const user = demoMember(requireUser());
       return delay(
         load()
           .comments.filter((c) => c.worldcup_id === worldcupId && (!c.hidden || c.user_id === user))
           .sort((a, b) => b.created_at.localeCompare(a.created_at))
-          .map((c) => ({ id: c.id, body: c.body, created_at: c.created_at, is_mine: c.user_id === user, hidden: c.hidden })),
+          .map((c) => ({ id: c.id, body: c.body, created_at: c.created_at, is_mine: c.user_id === user, hidden: c.hidden, ...demoComment(c.id,user,c.user_id) })),
       );
     },
 
     async addComment(worldcupId, body) {
-      const user = requireUser();
+      const user = demoMember(requireUser());
       const db = load();
       const text = body.trim();
       if (!text || text.length > 200) throw new Error('check constraint');
@@ -292,14 +297,14 @@ export function createDemoApi(): Api {
     },
 
     async deleteComment(id) {
-      const user = requireUser();
+      const user = demoMember(requireUser());
       const db = load();
       db.comments = db.comments.filter((c) => !(c.id === id && (c.user_id === user || user === DEMO_ADMIN)));
       save(db);
     },
 
     async sendFeedback({ worldcupId, type, body, candidateId, commentId }) {
-      const user = requireUser();
+      const user = demoMember(requireUser());
       const db = load();
       const today = db.feedback.filter((f) => f.user_id === user && f.worldcup_id === worldcupId && Date.parse(f.created_at) >= since());
       if (today.length >= 5 && user !== DEMO_ADMIN) throw new Error('daily_limit');
@@ -319,7 +324,7 @@ export function createDemoApi(): Api {
     },
 
     async uploadProposalImage(blob) {
-      const user = requireUser();
+      const user = demoMember(requireUser());
       const db = load();
       const path = `${user}/${crypto.randomUUID()}.webp`;
       db.proposalImages[path] = await blobToDataUrl(blob);
@@ -332,10 +337,10 @@ export function createDemoApi(): Api {
     },
 
     async submitProposal(input) {
-      const user = requireUser();
+      const user = demoMember(requireUser());
       const db = load();
       const today = db.proposals.filter((p) => p.user_id === user && Date.parse(p.created_at) >= since());
-      if (today.length >= 3 && user !== DEMO_ADMIN) throw new Error('daily_limit');
+      if (today.length >= 3) throw new Error('daily_limit');
       db.proposals.push({ ...input, id: crypto.randomUUID(), user_id: user, status: 'pending', worldcup_id: null, created_at: new Date().toISOString() });
       save(db);
     },
@@ -352,17 +357,17 @@ export function createDemoApi(): Api {
     },
 
     async createSurvey(input: SurveyInput) {
-      const user = requireUser();
+      const user = demoMember(requireUser());
       const db = load();
       if (input.publish_on < kstToday(new Date(Date.now() - 86400_000))) throw new Error('row-level security');
       const today = db.surveys.filter((s) => s.user_id === user && Date.parse(s.created_at) >= since());
-      if (today.length >= 3 && user !== DEMO_ADMIN) throw new Error('daily_limit');
+      if (today.length >= 3) throw new Error('daily_limit');
       db.surveys.push({ ...input, id: crypto.randomUUID(), user_id: user, deleted: false, created_at: new Date().toISOString() });
       save(db);
     },
 
     async requestSurveyChange({ surveyId, kind, reason, payload }) {
-      const user = requireUser();
+      const user = demoMember(requireUser());
       const db = load();
       if (!db.surveys.some((s) => s.id === surveyId && s.user_id === user)) throw new Error('row-level security');
       db.surveyRequests.push({ id: crypto.randomUUID(), user_id: user, survey_id: surveyId, kind, reason, payload: payload ?? null, status: 'pending', created_at: new Date().toISOString() });
@@ -462,11 +467,11 @@ export function createDemoApi(): Api {
       return delay(clone(load().proposals).sort((a, b) => b.created_at.localeCompare(a.created_at)));
     },
 
-    async adminRejectProposal(id) {
+    async adminRejectProposal(id, note = '') {
       requireAdmin();
       const db = load();
       const p = db.proposals.find((x) => x.id === id);
-      if (p) p.status = 'rejected';
+      if (p) {p.status = 'rejected';p.review_note = note;}
       save(db);
     },
 

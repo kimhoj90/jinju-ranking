@@ -1,3 +1,6 @@
+import Duel from './pages/Duel';
+import YouTubeTv from './pages/YouTubeTv';
+import Nickname from './pages/Nickname';
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { renderGlobalModal } from './components/GlobalModals';
@@ -16,7 +19,11 @@ import { SurveyBoard, SurveyDetail, SurveyWrite } from './pages/Surveys';
 const Admin = lazy(() => import('./pages/admin/Admin'));
 const Propose = lazy(() => import('./pages/Propose'));
 
-const loading = <main className="wrap"><p className="muted">불러오는 중…</p></main>;
+const loading = (
+  <main className="wrap">
+    <p className="muted">불러오는 중…</p>
+  </main>
+);
 
 export default function App() {
   return (
@@ -34,14 +41,31 @@ export default function App() {
                 <Route path="surveys" element={<SurveyBoard />} />
                 <Route path="surveys/new" element={<SurveyWrite />} />
                 <Route path="surveys/:id" element={<SurveyDetail />} />
+                <Route path="duels/:id" element={<Duel />} />
+                <Route path="tv" element={<YouTubeTv />} />
                 <Route path="records" element={<Records />} />
-                <Route path="propose" element={<Suspense fallback={loading}><Propose /></Suspense>} />
+                <Route
+                  path="propose"
+                  element={
+                    <Suspense fallback={loading}>
+                      <Propose />
+                    </Suspense>
+                  }
+                />
+                <Route path="nickname" element={<Nickname />} />
                 <Route path="login" element={<Login />} />
                 <Route path="auth/callback" element={<AuthCallback />} />
                 <Route path="privacy" element={<Privacy />} />
                 <Route path="terms" element={<Terms />} />
                 <Route path="contact" element={<Contact />} />
-                <Route path="admin/*" element={<Suspense fallback={loading}><Admin /></Suspense>} />
+                <Route
+                  path="admin/*"
+                  element={
+                    <Suspense fallback={loading}>
+                      <Admin />
+                    </Suspense>
+                  }
+                />
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>

@@ -1,3 +1,4 @@
+import type { Profile, AccountRow, CommunitySettings, Duel, DuelDraft, DuelResult, TvPage, TvEligibility, AdminTv } from '../types';
 import type {
   AdBanner,
   AdminComment,
@@ -31,6 +32,25 @@ export type MediaFolder = 'thumbnails' | 'candidates' | 'banners';
  */
 export interface Api {
   mode: 'supabase' | 'demo';
+  getProfile(): Promise<Profile | null>;
+  saveNickname(nickname: string): Promise<void>;
+  setCommentLike(id: string, liked: boolean): Promise<void>;
+  myProposals(): Promise<Proposal[]>;
+  cancelProposal(id: string): Promise<void>;
+  listDuels(): Promise<Duel[]>;
+  duelResult(id: string): Promise<DuelResult>;
+  voteDuel(id: string, choice: 'A' | 'B'): Promise<DuelResult>;
+  adminSaveDuel(draft: DuelDraft): Promise<void>;
+  tvPage(page?: number): Promise<TvPage>;
+  tvEligibility(): Promise<TvEligibility>;
+  recommendVideo(url: string): Promise<void>;
+  reportVideo(id: number): Promise<void>;
+  adminTv(): Promise<AdminTv[]>;
+  adminModerateVideo(id: number, action: 'hidden' | 'restored' | 'deleted'): Promise<void>;
+  adminAccounts(): Promise<AccountRow[]>;
+  adminBlockAccount(id: string, blocked: boolean): Promise<void>;
+  adminCommunitySettings(): Promise<CommunitySettings>;
+  adminSaveCommunitySettings(settings: CommunitySettings): Promise<void>;
 
   // 로그인
   getUser(): Promise<SessionUser | null>;
@@ -86,7 +106,7 @@ export interface Api {
   uploadMedia(blob: Blob, folder: MediaFolder): Promise<string>;
   adminCopyProposalImage(path: string): Promise<string>;
   adminListProposals(): Promise<Proposal[]>;
-  adminRejectProposal(id: string): Promise<void>;
+  adminRejectProposal(id: string, note?: string): Promise<void>;
   adminListFeedback(): Promise<FeedbackItem[]>;
   adminSetFeedbackStatus(id: string, status: FeedbackStatus): Promise<void>;
   adminListComments(): Promise<AdminComment[]>;

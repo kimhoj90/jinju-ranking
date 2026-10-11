@@ -1,3 +1,4 @@
+import Nickname from '../pages/Nickname';
 import { ArrowRight, Settings } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -52,7 +53,7 @@ function AdStrip({ ads }: { ads: AdBanner[] }) {
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, profile, ready, authError } = useAuth();
   const { ads } = useSite();
   const { openModal } = useUi();
   const path = location.pathname;
@@ -94,10 +95,11 @@ export default function Layout() {
             </NavLink>
             <NavLink to="/surveys">설문조사</NavLink>
             <NavLink to="/records">진주기록</NavLink>
+            <NavLink to="/tv">요즘 유튜브 뭐봄</NavLink>
           </div>
           {user ? (
             <button className="topnav-login" onClick={() => openModal({ type: 'account' })}>
-              로그인됨
+              {profile?.nickname || '닉네임 설정'}
             </button>
           ) : (
             <Link className="topnav-login" to={loginPath(path + location.search)}>
@@ -128,7 +130,15 @@ export default function Layout() {
         </header>
       )}
 
-      <Outlet />
+      {!ready ? (
+        <main className="wrap">
+          <p>로그인 확인 중…</p>
+        </main>
+      ) : user && (!profile || authError) && !['/privacy', '/terms', '/contact'].includes(path) ? (
+        <Nickname />
+      ) : (
+        <Outlet />
+      )}
 
       {!isPlay && (
         <footer className="wrap footer">

@@ -1,3 +1,4 @@
+import { DuelCards } from './Duel';
 import { ArrowRight, ArrowUpRight, Lock, RotateCcw, Search, Share2, Trophy, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -86,6 +87,7 @@ export default function Home() {
   const { openModal, toast } = useUi();
   const share = useShare();
   const [query, setQuery] = useState('');
+  const [duelCount, setDuelCount] = useState(0);
   const [sort, setSort] = useState<'new' | 'popular'>('new');
   const game = savedGame.get();
   const resumeCup = game && !game.done && game.matches.length > 0 ? worldcups.find((w) => w.id === game.cupId) : undefined;
@@ -147,7 +149,8 @@ export default function Home() {
       <section className="explore">
         <div className="rankingtoolbar">
           <div className="count">
-            총 <strong>{loading && !worldcups.length ? '…' : list.length}</strong>개의 랭킹
+            총 <strong>{loading && !worldcups.length ? '…' : list.length}</strong>
+            개의 랭킹
           </div>
           <div className="sortoptions" role="group" aria-label="랭킹 정렬">
             <button className={sort === 'new' ? 'active' : ''} aria-pressed={sort === 'new'} onClick={() => setSort('new')}>
@@ -193,6 +196,7 @@ export default function Home() {
               </article>
             ))}
 
+          <DuelCards query={query} onCount={setDuelCount} />
           {list.map((cup, i) => {
             const completions = stats[cup.id]?.completions ?? 0;
             return (
@@ -230,7 +234,7 @@ export default function Home() {
           })}
         </div>
 
-        {!loading && !list.length && (
+        {!loading && !list.length && !duelCount && (
           <div className="empty">
             <Search size={30} />
             <h3>{query ? '찾는 랭킹이 아직 없어요.' : '공개된 랭킹이 아직 없어요.'}</h3>
