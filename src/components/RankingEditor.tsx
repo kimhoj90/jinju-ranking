@@ -330,7 +330,7 @@ export default function RankingEditor({ initial, mode, onSubmit, onCancel, onRej
         </div>
         <div>
           <label>
-            대표 썸네일 <span className="muted">선택</span>
+            별도 썸네일 <span className="muted">특별한 경우에만 업로드 · 선택</span>
             <input
               type="file"
               accept={mode === 'proposal' ? 'image/jpeg,image/png,image/webp' : IMAGE_ACCEPT}
@@ -378,7 +378,7 @@ export default function RankingEditor({ initial, mode, onSubmit, onCancel, onRej
             </button>
           )}
           {mode === 'proposal' && <small className="muted">제안 사진은 JPG, PNG, WebP 형식, 2MB 이하만 가능해요.</small>}
-          <small className="muted">썸네일을 비우면 후보 사진 2장으로 자동 구성돼요. 결과가 쌓이면 우승 횟수 1·2위 사진이 표시돼요.</small>
+          <small className="muted">기본은 후보 사진과 이름으로 자동 생성해요. 처음에는 무작위 2명, 결과가 쌓이면 우승 횟수 1·2위를 보여줘요.</small>
         </div>
       </div>
 

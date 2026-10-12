@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { SquareCheck } from 'lucide-react';
 import LoginPrompt from '../components/LoginPrompt';
 import { useAuth } from '../context/AppContext';
 import { api } from '../lib/api';
@@ -232,7 +233,7 @@ export function DuelCards({ query, onCount }: { query: string; onCount: (n: numb
             </div>
           </Link>
           <div className="cardbottom">
-            <Link to={`/duels/${d.id}`}>☑️ 나의 선택은?</Link>
+            <Link className="card-action" to={`/duels/${d.id}`}><SquareCheck size={14} /> 나의 선택은?</Link>
           </div>
         </article>
       ))}
