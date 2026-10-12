@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { formatDate } from '../../lib/format';
 import { compressImage } from '../../lib/image';
 import { api } from '../../lib/api';
 import { friendlyError } from '../../lib/errors';
@@ -47,7 +49,12 @@ export function DuelsAdmin() {
   return (
     <section>
       {error && <p className="error">{error}</p>}
-      {!draft && <div className="sectionhead"><h2>양자택일 관리</h2><button className="primary" onClick={() => setDraft({ ...blank })}><Plus size={18}/> 새 양자택일</button></div>}
+      {!draft && <>
+        <div className="manageactions">
+          <button className="primary" onClick={() => setDraft({ ...blank })}><Plus size={16}/> 새 양자택일</button>
+        </div>
+        <p className="muted stats-note">썸네일이나 제목을 누르면 편집할 수 있어요. 공개된 양자택일은 홈에 표시되고, 보관하면 투표가 종료돼요.</p>
+      </>}
       {draft && (
         <form className="contactform community-editor" onSubmit={save}>
           <h2>{draft.id ? '양자택일 편집' : '새 양자택일'}</h2>
@@ -104,10 +111,24 @@ export function DuelsAdmin() {
         </form>
       )}
       {!draft && <div className="adminlist ranking-management-list">{rows.map(d=><div key={d.id}>
-        <button className="admin-thumbnail" aria-label={d.question+' 편집'} onClick={()=>setDraft({...d})}>{d.thumbnail_url?<img className="ranking-thumb-image" src={d.thumbnail_url} alt=""/>:<span>{d.option_a} VS {d.option_b}</span>}</button>
-        <div><h3><button className="admin-title-link" onClick={()=>setDraft({...d})}>{d.question}</button></h3><p>{d.option_a} / {d.option_b} · {d.status==='published'?'공개':'보관'}</p><small>{new Date(d.created_at).toLocaleDateString('ko-KR')} 등록</small></div>
-        <div className="rowactions"><button className="secondary" onClick={()=>setDraft({...d})}><Pencil size={16}/>편집</button></div>
+        <button className="admin-thumbnail" aria-label={d.question+' 편집'} onClick={()=>setDraft({...d})}>
+          {d.thumbnail_url ? <img className="ranking-thumb-image" src={d.thumbnail_url} alt=""/> : <span className="admin-duel-preview"><span>{d.option_a}</span><b>VS</b><span>{d.option_b}</span></span>}
+        </button>
+        <div>
+          <h3><button className="admin-title-link" onClick={()=>setDraft({...d})}>{d.question}</button></h3>
+          <p><span className={'statuschip '+d.status}>{d.status==='published'?'공개':'보관'}</span> · 2개 선택지</p>
+          <dl className="ranking-stats">
+            <div><dt>업로드 날짜</dt><dd>{formatDate(d.created_at)}</dd></div>
+            <div><dt>선택지 A</dt><dd>{d.option_a}</dd></div>
+            <div><dt>선택지 B</dt><dd>{d.option_b}</dd></div>
+          </dl>
+        </div>
+        <div className="rowactions">
+          <Link className="textbtn" to={`/duels/${d.id}`}>결과</Link>
+          <button className="secondary" onClick={()=>setDraft({...d})}>편집</button>
+        </div>
       </div>)}</div>}
+
     </section>
   );
 }

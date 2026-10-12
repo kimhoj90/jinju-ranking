@@ -3055,7 +3055,7 @@ select {
   align-items: center;
   justify-content: center;
   padding: 2px 7px;
-  background: #fff;
+  background: #f3f0e6;
   color: var(--text);
   font-size: 12px;
   line-height: 15px;
@@ -3603,3 +3603,9 @@ select {
 .admin-detail-link { flex: 1; min-width: 0; color: inherit; text-decoration: none; }
 .duel-thumbnail > .ranking-thumb-image { position: absolute; inset: 0; }
 .roundbadge { z-index: 2; }
+
+.auto-candidate-name { border-top: 1px solid #ded9ca; border-bottom: 1px solid #ded9ca; }
+.auto-candidate + .auto-candidate .auto-candidate-name { border-left: 1px solid #ded9ca; }
+.admin-duel-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 5px; width: 100%; height: 100%; padding: 8px; background: var(--soft); font-size: 11px; }
+.admin-duel-preview span { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.ranking-management-list .ranking-stats dd { overflow-wrap: anywhere; }
