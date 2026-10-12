@@ -1,19 +1,16 @@
 import { DuelCards } from './Duel';
-import { ArrowRight, ArrowUpRight, Lock, RotateCcw, Search, Share2, Trophy, Users, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Lock, RotateCcw, Search, Share2, Trophy, Play, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Modal from '../components/Modal';
 import RankingThumb from '../components/RankingThumb';
-import { useSite, useUi } from '../context/AppContext';
+import { useAuth, useSite, useUi } from '../context/AppContext';
 import { api } from '../lib/api';
-import { num } from '../lib/format';
+import { loginPath } from '../components/LoginPrompt';
 import { onceThisSession, savedGame, savedResult, visitorId } from '../lib/local';
 import { rankingUrl, shareLink } from '../lib/share';
 import { availableRounds, estimateMinutes, roundLabel } from '../lib/tournament';
 import type { PublicStats, Worldcup } from '../lib/types';
-
-/** 참여자 수가 이 숫자 이상일 때만 카드에 표시한다 (초기에 숫자가 작아 보이지 않도록) */
-const PARTICIPANT_BADGE_MIN = 30;
 
 const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, '');
 
@@ -94,6 +91,7 @@ function StartModal({ cup, stats, onClose }: { cup: Worldcup; stats?: PublicStat
 }
 
 export default function Home() {
+  const { user, ready } = useAuth();
   const { slug } = useParams();
   const navigate = useNavigate();
   const { worldcups, stats, loading, error, refresh, findBySlug } = useSite();
@@ -211,7 +209,6 @@ export default function Home() {
 
           <DuelCards query={query} onCount={setDuelCount} />
           {list.map((cup, i) => {
-            const completions = stats[cup.id]?.completions ?? 0;
             return (
               <article className="card" key={cup.id}>
                 <Link className="cardmain" to={`/r/${cup.slug}`}>
@@ -228,19 +225,13 @@ export default function Home() {
                     <p>{cup.description}</p>
                   </div>
                 </Link>
-                <div className="cardbottom">
-                  {completions >= PARTICIPANT_BADGE_MIN ? (
-                    <span>
-                      <Users size={14} /> {num(completions)}명 참여
-                    </span>
-                  ) : (
-                    <span>
-                      <Trophy size={14} /> 나의 최애 찾기
-                    </span>
-                  )}
-                  <button aria-label={cup.title + ' 공유'} onClick={() => void share(cup)}>
-                    <Share2 size={16} />
-                  </button>
+                <div className="cardbottom ranking-card-actions">
+                  <Link to={`/r/${cup.slug}`} aria-label={cup.title + ' 시작'}><Play size={14} />시작</Link>
+                  <button disabled={!ready} aria-label={cup.title + ' 순위'} onClick={() => {
+                    const next = `/r/${cup.slug}/ranking`;
+                    navigate(user ? next : loginPath(next));
+                  }}><Trophy size={14} />순위</button>
+                  <button aria-label={cup.title + ' 공유'} onClick={() => void share(cup)}><Share2 size={14} />공유</button>
                 </div>
               </article>
             );

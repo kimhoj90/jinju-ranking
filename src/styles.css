@@ -552,7 +552,7 @@ select {
 }
 .thumbnail {
   position: relative;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   background: #dce3d3;
 }
@@ -601,7 +601,7 @@ select {
   opacity: 1;
 }
 .cardcopy {
-  padding: 10px 15px 4px;
+  padding: 16px 15px 6px;
 }
 .cardcopy h3 {
   display: -webkit-box;
@@ -2645,7 +2645,7 @@ select {
     display: none;
   }
   .cardcopy {
-    padding: 8px 11px 4px;
+    padding: 11px 11px 4px;
   }
   .cardcopy h3 {
     font-size: 15px;
@@ -3050,12 +3050,15 @@ select {
 }
 .auto-candidate-name {
   flex: none;
-  min-height: 2.7em;
-  padding: 5px 7px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
   background: #fff;
   color: var(--text);
   font-size: 12px;
-  line-height: 1.35;
+  line-height: 15px;
   text-align: center;
   border-top: 1px solid var(--line);
 }
@@ -3552,4 +3555,31 @@ select {
   .duel-card-options > b {
     font-size: 18px;
   }
+}
+
+/* 세 동작을 같은 폭과 터치 영역으로 제공한다. */
+.ranking-card-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.ranking-card-actions > a,
+.ranking-card-actions > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 2px;
+  color: #7f8876;
+  font-size: 13px;
+  text-decoration: none;
+}
+.ranking-card-actions > a:hover,
+.ranking-card-actions > button:hover { color: var(--green); }
+@media (max-width: 600px) {
+  .ranking-card-actions > a,
+  .ranking-card-actions > button { font-size: 12px; gap: 3px; }
 }
