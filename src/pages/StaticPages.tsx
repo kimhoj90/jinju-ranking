@@ -1,30 +1,9 @@
-import { ChartColumn, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSite, useUi } from '../context/AppContext';
 
 /** 개인정보처리방침·이용약관 시행일. 공개 전에 실제 날짜로 바꿔주세요. */
 const EFFECTIVE_DATE = '2026년 10월 ○○일';
-
-export function Records() {
-  return (
-    <main className="wrap records-page">
-      <span className="eyebrow">JINJU ARCHIVE</span>
-      <h1>진주기록</h1>
-      <section className="records-empty">
-        <div className="record-symbol">
-          <ChartColumn size={46} />
-        </div>
-        <span>COMING SOON</span>
-        <h2>숫자로 만나는 진주</h2>
-        <p>
-          진주의 다양한 통계와 인포그래픽을 담을 공간이에요.
-          <br />
-          기록을 준비하고 있어요.
-        </p>
-      </section>
-    </main>
-  );
-}
 
 function ContactLine() {
   const { settings } = useSite();

@@ -24,8 +24,18 @@ describe('대결 진행', () => {
     expect(progress(g)).toBe(100);
   });
 
-  it('지원하지 않는 후보 수는 시작할 수 없다', () => {
-    expect(() => startGame('cup', ids(7))).toThrow();
+  it('후보 수 안에서 시작 라운드를 선택한다', () => {
+    expect(startGame('cup', ids(7)).round).toHaveLength(4);
+    expect(startGame('cup', ids(17), undefined, 8).round).toHaveLength(8);
+    expect(() => startGame('cup', ids(7), undefined, 8)).toThrow();
+    expect(() => startGame('cup', ids(3))).toThrow();
+  });
+  it('작은 라운드도 전체 후보 중 중복 없이 뽑아 검증한다', () => {
+    let g = startGame('cup', ids(17), undefined, 8);
+    expect(new Set(g.round).size).toBe(8);
+    while (!g.done) g = pick(g, g.round[g.index]);
+    expect(verifyMatches(ids(17), g.matches).champion).toBe(g.champion);
+    expect(() => verifyMatches(ids(4), g.matches)).toThrow();
   });
 
   it('되돌리기는 마지막 선택만 취소한다 (라운드를 넘어가도)', () => {
@@ -61,7 +71,7 @@ describe('서버와 같은 검증 규칙 (데모 모드)', () => {
 
   it('무작위 기록도 항상 올바른 토너먼트다', () => {
     let seed = 1;
-    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     for (let i = 0; i < 50; i++) {
       expect(() => verifyMatches(ids(16), playRandomBracket(ids(16), rand))).not.toThrow();
     }
@@ -69,9 +79,33 @@ describe('서버와 같은 검증 규칙 (데모 모드)', () => {
 
   it('순위는 우승 → 결승 진출 → 승률 순으로 정렬한다', () => {
     const cands = ids(4).map((id, i) => ({ id, name: id, sub: '', image_url: '', sort_order: i, active: true }));
-    const b1 = { champion_id: 'c1', runner_up_id: 'c2', matches: [{ a: 'c1', b: 'c3', winner: 'c1' }, { a: 'c2', b: 'c4', winner: 'c2' }, { a: 'c1', b: 'c2', winner: 'c1' }] };
-    const b2 = { champion_id: 'c2', runner_up_id: 'c3', matches: [{ a: 'c2', b: 'c1', winner: 'c2' }, { a: 'c3', b: 'c4', winner: 'c3' }, { a: 'c2', b: 'c3', winner: 'c2' }] };
-    const b3 = { champion_id: 'c1', runner_up_id: 'c4', matches: [{ a: 'c1', b: 'c2', winner: 'c1' }, { a: 'c4', b: 'c3', winner: 'c4' }, { a: 'c1', b: 'c4', winner: 'c1' }] };
+    const b1 = {
+      champion_id: 'c1',
+      runner_up_id: 'c2',
+      matches: [
+        { a: 'c1', b: 'c3', winner: 'c1' },
+        { a: 'c2', b: 'c4', winner: 'c2' },
+        { a: 'c1', b: 'c2', winner: 'c1' },
+      ],
+    };
+    const b2 = {
+      champion_id: 'c2',
+      runner_up_id: 'c3',
+      matches: [
+        { a: 'c2', b: 'c1', winner: 'c2' },
+        { a: 'c3', b: 'c4', winner: 'c3' },
+        { a: 'c2', b: 'c3', winner: 'c2' },
+      ],
+    };
+    const b3 = {
+      champion_id: 'c1',
+      runner_up_id: 'c4',
+      matches: [
+        { a: 'c1', b: 'c2', winner: 'c1' },
+        { a: 'c4', b: 'c3', winner: 'c4' },
+        { a: 'c1', b: 'c4', winner: 'c1' },
+      ],
+    };
     const r = computeRanking(cands, [b1, b2, b3]);
     expect(r.participants).toBe(3);
     // c3와 c4는 우승·결승·승률(25%)이 같아 이름순

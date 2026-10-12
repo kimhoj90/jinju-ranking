@@ -38,9 +38,10 @@ export function seasonDraft(cup: Worldcup): WorldcupDraft {
     ...worldcupToDraft(cup),
     id: crypto.randomUUID(),
     title: `${cup.title} · 새 시즌`.slice(0, 100),
+    source_season_id: cup.id,
     status: 'draft',
     featured: false,
-    candidates: cup.candidates.map((c) => ({ ...newCandidate(), name: c.name, sub: c.sub, image_url: c.image_url })),
+    candidates: cup.candidates.map((c) => ({ ...newCandidate(), source_candidate_id: c.id, name: c.name, sub: c.sub, image_url: c.image_url })),
   };
 }
 

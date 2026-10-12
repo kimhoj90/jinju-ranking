@@ -2,6 +2,10 @@ import type { GameSnapshot, GameState, Match } from './types';
 
 export const VALID_SIZES = [4, 8, 16, 32, 64, 128] as const;
 
+export function availableRounds(count: number): number[] {
+  return VALID_SIZES.filter((n) => n <= count);
+}
+
 export function isValidSize(n: number): boolean {
   return (VALID_SIZES as readonly number[]).includes(n);
 }
@@ -15,11 +19,16 @@ export function shuffle<T>(items: T[], rand: () => number = Math.random): T[] {
   return out;
 }
 
-export function startGame(cupId: string, candidateIds: string[], rand?: () => number): GameState {
-  if (!isValidSize(candidateIds.length)) {
+export function startGame(
+  cupId: string,
+  candidateIds: string[],
+  rand?: () => number,
+  size = availableRounds(candidateIds.length).at(-1) ?? 0,
+): GameState {
+  if (!isValidSize(size) || size > candidateIds.length) {
     throw new Error('후보 수를 확인해주세요.');
   }
-  return { cupId, round: shuffle(candidateIds, rand), next: [], index: 0, matches: [], done: false, history: [] };
+  return { cupId, round: shuffle(candidateIds, rand).slice(0, size), next: [], index: 0, matches: [], done: false, history: [] };
 }
 
 export function currentPair(state: GameState): [string, string] {

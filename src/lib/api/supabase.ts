@@ -46,6 +46,24 @@ export function createSupabaseApi(url: string, key: string): Api {
 
   const api: Api = {
     mode: 'supabase',
+    async getSeasonRanks(id) {
+      return check(await sb.rpc('get_season_ranks', { p_id: id }));
+    },
+    async getDuelComments(id) {
+      return check(await sb.rpc('get_duel_comments', { p_id: id }));
+    },
+    async addDuelComment(id, body) {
+      check(await sb.rpc('add_duel_comment', { p_id: id, p_body: body }));
+    },
+    async listRecords() {
+      return check(await sb.from('records').select('*').order('created_at', { ascending: false })) ?? [];
+    },
+    async adminAddRecord(title, imageUrl) {
+      check(await sb.from('records').insert({ title: title.trim(), image_url: imageUrl }));
+    },
+    async adminDeleteRecord(id) {
+      check(await sb.from('records').delete().eq('id', id));
+    },
     async getProfile() {
       return check(await sb.rpc('my_profile'));
     },
@@ -309,6 +327,7 @@ export function createSupabaseApi(url: string, key: string): Api {
     async adminSaveWorldcup(draft, proposalId) {
       const p = {
         id: draft.id ?? null,
+        source_season_id: draft.source_season_id ?? null,
         title: draft.title.trim(),
         description: draft.description.trim(),
         keywords: draft.keywords.trim(),
@@ -318,6 +337,7 @@ export function createSupabaseApi(url: string, key: string): Api {
         thumbnail_url: draft.thumbnail_url,
         candidates: draft.candidates.map((c) => ({
           id: c.id ?? null,
+          source_candidate_id: c.source_candidate_id ?? null,
           name: c.name.trim(),
           sub: c.sub.trim(),
           image_url: c.image_url,

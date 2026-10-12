@@ -1,6 +1,7 @@
 export type WorldcupStatus = 'draft' | 'published' | 'archived';
 
 export interface Candidate {
+  lineage_id?: string;
   id: string;
   name: string;
   sub: string;
@@ -10,6 +11,7 @@ export interface Candidate {
 }
 
 export interface Worldcup {
+  series_id?: string;
   id: string;
   slug: string;
   title: string;
@@ -194,6 +196,7 @@ export interface SessionUser {
 
 /** 에디터에서 다루는 후보 한 줄. key는 화면용, id는 저장된 후보에만 있다. */
 export interface DraftCandidate {
+  source_candidate_id?: string;
   key: string;
   id?: string;
   name: string;
@@ -204,6 +207,7 @@ export interface DraftCandidate {
 }
 
 export interface WorldcupDraft {
+  source_season_id?: string;
   id?: string;
   title: string;
   description: string;
@@ -271,5 +275,24 @@ export interface AdminTv {
   nickname: string;
   reports: number;
   moderation: 'visible' | 'hidden' | 'restored' | 'deleted';
+  created_at: string;
+}
+
+export interface SeasonRanks {
+  season_count: number;
+  ranks: { candidate_id: string; rank: number; wins: number }[];
+}
+export interface DuelComment {
+  id: string;
+  choice: 'A' | 'B';
+  body: string;
+  nickname: string;
+  created_at: string;
+  is_mine: boolean;
+}
+export interface RecordArticle {
+  id: string;
+  title: string;
+  image_url: string;
   created_at: string;
 }

@@ -1,7 +1,4 @@
-import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { ArrowLeft, Check, GripVertical, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { IMAGE_ACCEPT } from '../lib/image';
 import { currentPair, pick, roundLabel, startGame, undo } from '../lib/tournament';
@@ -17,8 +14,6 @@ export type UploadKind = 'candidate' | 'thumbnail';
 interface Props {
   initial: WorldcupDraft;
   mode: EditorMode;
-  /** 공개된 적 있는 랭킹: 후보 추가·삭제 불가 */
-  locked?: boolean;
   onSubmit: (draft: WorldcupDraft) => Promise<void>;
   onCancel: () => void;
   onReject?: () => Promise<void>;
@@ -35,47 +30,27 @@ export const newCandidate = (): DraftCandidate => ({
 
 const isBlank = (c: DraftCandidate) => !c.name.trim() && !c.sub.trim() && !c.image_url;
 
-function SortableRow({
+function CandidateRow({
   candidate,
   accept,
   index,
-  count,
-  locked,
   uploading,
   onChange,
-  onMove,
   onRemove,
   onUpload,
 }: {
   candidate: DraftCandidate;
   accept: string;
   index: number;
-  count: number;
-  locked: boolean;
   uploading: boolean;
   onChange: (field: 'name' | 'sub' | 'image_url', value: string) => void;
-  onMove: (to: number) => void;
   onRemove: () => void;
   onUpload: (file: File) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: candidate.key });
   return (
-    <div
-      ref={setNodeRef}
-      className={'photo-candidate-row' + (isDragging ? ' dragging' : '')}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-    >
+    <div className="photo-candidate-row">
       <div className="candidate-order">
-        <button type="button" className="draghandle" aria-label={`${index + 1}번 후보 끌어서 순서 바꾸기`} {...attributes} {...listeners}>
-          <GripVertical size={18} />
-        </button>
         <b>{index + 1}</b>
-        <button type="button" aria-label="위로 이동" disabled={index === 0} onClick={() => onMove(index - 1)}>
-          ↑
-        </button>
-        <button type="button" aria-label="아래로 이동" disabled={index === count - 1} onClick={() => onMove(index + 1)}>
-          ↓
-        </button>
       </div>
       <div className="candidate-upload">
         <div className="candidate-mini-preview">
@@ -122,13 +97,11 @@ function SortableRow({
           />
         </label>
       </div>
-      {!locked ? (
+      {
         <button type="button" className="textbtn rowdelete" aria-label={`후보 ${index + 1} 삭제`} onClick={onRemove}>
           <Trash2 size={17} />
         </button>
-      ) : (
-        <span />
-      )}
+      }
     </div>
   );
 }
@@ -169,7 +142,7 @@ function PreviewModal({ draft, onClose }: { draft: WorldcupDraft; onClose: () =>
   );
 }
 
-export default function RankingEditor({ initial, mode, locked = false, onSubmit, onCancel, onReject, uploadImage, heading }: Props) {
+export default function RankingEditor({ initial, mode, onSubmit, onCancel, onReject, uploadImage, heading }: Props) {
   const [draft, setDraft] = useState<WorldcupDraft>(() => ({
     ...initial,
     candidates: initial.candidates.length ? initial.candidates : [newCandidate()],
@@ -181,13 +154,6 @@ export default function RankingEditor({ initial, mode, locked = false, onSubmit,
   const [bulk, setBulk] = useState('');
   const [preview, setPreview] = useState<WorldcupDraft | null>(null);
   const lock = useRef(false);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-
   const set = <K extends keyof WorldcupDraft>(key: K, value: WorldcupDraft[K]) => setDraft((d) => ({ ...d, [key]: value }));
   const updateCandidate = (key: string, field: 'name' | 'sub' | 'image_url', value: string) =>
     setDraft((d) => ({
@@ -202,21 +168,6 @@ export default function RankingEditor({ initial, mode, locked = false, onSubmit,
           : c,
       ),
     }));
-  const move = (from: number, to: number) =>
-    setDraft((d) => {
-      if (to < 0 || to >= d.candidates.length) return d;
-      const list = [...d.candidates];
-      list.splice(to, 0, list.splice(from, 1)[0]);
-      return { ...d, candidates: list };
-    });
-
-  const onDragEnd = ({ active, over }: DragEndEvent) => {
-    if (!over || active.id === over.id) return;
-    const from = draft.candidates.findIndex((c) => c.key === active.id);
-    const to = draft.candidates.findIndex((c) => c.key === over.id);
-    move(from, to);
-  };
-
   const upload = async (key: string | 'thumbnail', file: File) => {
     setUploading(key);
     setError('');
@@ -267,7 +218,8 @@ export default function RankingEditor({ initial, mode, locked = false, onSubmit,
       return;
     }
     const strict = mode !== 'admin' || d.status === 'published';
-    const issue = strict ? candidateIssue(d.candidates) : candidateFieldIssue(d.candidates);
+    const countIssue = d.candidates.length < 4 || d.candidates.length > 128 ? '후보는 4~128명으로 구성해주세요.' : '';
+    const issue = mode === 'proposal' ? candidateIssue(d.candidates) : candidateFieldIssue(d.candidates) || (strict ? countIssue : '');
     if (issue) {
       setError(issue + (mode === 'admin' && d.status === 'published' ? ' 맞추기 전에는 「초안」으로 저장할 수 있어요.' : ''));
       return;
@@ -285,7 +237,8 @@ export default function RankingEditor({ initial, mode, locked = false, onSubmit,
   };
 
   const filled = draft.candidates.filter((c) => c.id || !isBlank(c));
-  const sizeMessage = sizeHint(filled.length);
+  const sizeMessage =
+    mode === 'proposal' ? sizeHint(filled.length) : filled.length < 4 || filled.length > 128 ? '후보는 4~128명으로 구성해주세요.' : '';
   const busy = saving || !!uploading;
   const titles = {
     admin: {
@@ -433,7 +386,7 @@ export default function RankingEditor({ initial, mode, locked = false, onSubmit,
         <h3>
           후보 <span>{filled.length}개</span>
         </h3>
-        {!locked && (
+        {
           <button
             type="button"
             className="secondary"
@@ -447,55 +400,43 @@ export default function RankingEditor({ initial, mode, locked = false, onSubmit,
           >
             <Plus size={15} /> 한 줄 추가
           </button>
-        )}
+        }
       </div>
       <p className={'sizestatus' + (sizeMessage ? '' : ' ok')}>
         {sizeMessage ? (
           sizeMessage
         ) : (
           <>
-            <Check size={15} /> {roundLabel(filled.length)}으로 공개할 수 있어요.
+            <Check size={15} /> 후보 {filled.length}명으로 공개할 수 있어요.
           </>
         )}
       </p>
       <p className="muted">
-        후보는 4·8·16·32·64·128개. 사진은 각각 2MB 이하, 가로:세로 4:3으로 가운데를 기준으로 채워져요. 왼쪽 손잡이를 끌거나 ↑↓로 순서를 바꿀 수
-        있어요.
+        {mode === 'proposal' ? '제안 후보는 4·8·16·32·64·128명.' : '후보는 4~128명. 추가·제외해도 기존 참여 기록은 유지돼요.'} 사진은 각각 2MB 이하,
+        4:3으로 채워져요. 대결 상대는 무작위로 정해져요.
       </p>
-      {locked && (
-        <p className="editor-note">
-          공개된 랭킹은 기존 표의 의미가 바뀌지 않도록 후보 이름·설명·사진만 고칠 수 있어요. 후보를 더하거나 빼려면 「새 시즌」을 만들어주세요.
-        </p>
-      )}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={draft.candidates.map((c) => c.key)} strategy={verticalListSortingStrategy}>
-          <div className="photo-candidate-list">
-            {draft.candidates.map((c, i) => (
-              <SortableRow
-                accept={mode === 'proposal' ? 'image/jpeg,image/png,image/webp' : IMAGE_ACCEPT}
-                key={c.key}
-                candidate={c}
-                index={i}
-                count={draft.candidates.length}
-                locked={locked}
-                uploading={uploading === c.key}
-                onChange={(field, value) => updateCandidate(c.key, field, value)}
-                onMove={(to) => move(i, to)}
-                onRemove={() =>
-                  setDraft((d) => ({
-                    ...d,
-                    candidates: d.candidates.filter((x) => x.key !== c.key),
-                  }))
-                }
-                onUpload={(file) => void upload(c.key, file)}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      <div className="photo-candidate-list">
+        {draft.candidates.map((c, i) => (
+          <CandidateRow
+            accept={mode === 'proposal' ? 'image/jpeg,image/png,image/webp' : IMAGE_ACCEPT}
+            key={c.key}
+            candidate={c}
+            index={i}
+            uploading={uploading === c.key}
+            onChange={(field, value) => updateCandidate(c.key, field, value)}
+            onRemove={() =>
+              setDraft((d) => ({
+                ...d,
+                candidates: d.candidates.filter((x) => x.key !== c.key),
+              }))
+            }
+            onUpload={(file) => void upload(c.key, file)}
+          />
+        ))}
+      </div>
 
-      {!locked && (
+      {
         <div className="bulkadd">
           <label>
             한꺼번에 추가
@@ -514,7 +455,7 @@ export default function RankingEditor({ initial, mode, locked = false, onSubmit,
             </button>
           </div>
         </div>
-      )}
+      }
 
       {notice && (
         <p className="success" role="status">

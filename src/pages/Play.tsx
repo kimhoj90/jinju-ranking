@@ -6,7 +6,7 @@ import Modal from '../components/Modal';
 import { useSite } from '../context/AppContext';
 import { api } from '../lib/api';
 import { onceThisSession, savedGame, savedResult, visitorId } from '../lib/local';
-import { currentPair, matchNumber, pick, progress, roundLabel, startGame, undo } from '../lib/tournament';
+import { availableRounds, currentPair, matchNumber, pick, progress, roundLabel, startGame, undo } from '../lib/tournament';
 import type { GameState, Worldcup } from '../lib/types';
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -30,7 +30,7 @@ export function RoundTransition({ size, initial }: { size: number; initial: bool
 function canResume(saved: GameState | null, cup: Worldcup): saved is GameState {
   if (!saved || saved.done || saved.cupId !== cup.id) return false;
   const ids = new Set(cup.candidates.map((c) => c.id));
-  return saved.round.every((id) => ids.has(id));
+  return [...saved.round, ...saved.next, ...saved.matches.flatMap((m) => [m.a, m.b])].every((id) => ids.has(id));
 }
 
 export default function Play() {
@@ -44,22 +44,38 @@ export default function Play() {
   const [transition, setTransition] = useState<{ size: number; initial: boolean } | null>(null);
   const [quitOpen, setQuitOpen] = useState(false);
   const [error, setError] = useState('');
+  const [choosingSize, setChoosingSize] = useState(false);
+  const [startSize, setStartSize] = useState(4);
   const busy = useRef(false);
   const timer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (!cup) return;
+    if (onceThisSession('view:' + cup.id)) void api.recordView(cup.id, visitorId()).catch(() => {});
     const fresh = (location.state as { fresh?: boolean } | null)?.fresh;
     const saved = savedGame.get();
     try {
-      const g = !fresh && canResume(saved, cup) ? saved : startGame(cup.id, cup.candidates.map((c) => c.id));
+      const size = (location.state as { size?: number } | null)?.size;
+      if ((fresh || !canResume(saved, cup)) && !size) {
+        setStartSize(availableRounds(cup.candidates.length).at(-1) ?? 4);
+        setChoosingSize(true);
+        return;
+      }
+      const g =
+        !fresh && canResume(saved, cup)
+          ? saved
+          : startGame(
+              cup.id,
+              cup.candidates.map((c) => c.id),
+              undefined,
+              size,
+            );
       setGame(g);
       savedGame.set(g);
       setTransition({ size: g.round.length, initial: g.matches.length === 0 });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-    if (onceThisSession('view:' + cup.id)) void api.recordView(cup.id, visitorId()).catch(() => {});
     if (fresh) navigate(location.pathname, { replace: true, state: {} });
   }, [cup?.id]);
 
@@ -86,6 +102,46 @@ export default function Play() {
     );
   }
 
+  if (choosingSize)
+    return (
+      <main className="wrap loginpage">
+        <section className="logincard">
+          <h1>{cup.title}</h1>
+          <label>
+            몇 강부터 시작할까요?
+            <select value={startSize} onChange={(e) => setStartSize(Number(e.target.value))}>
+              {availableRounds(cup.candidates.length).map((n) => (
+                <option key={n} value={n}>
+                  {n}강
+                </option>
+              ))}
+            </select>
+          </label>
+          <p>
+            전체 {cup.candidates.length}명 중 {startSize}명이 무작위로 참여해요.
+          </p>
+          <button
+            className="primary full"
+            onClick={() => {
+              const g = startGame(
+                cup.id,
+                cup.candidates.map((c) => c.id),
+                undefined,
+                startSize,
+              );
+              setGame(g);
+              savedGame.set(g);
+              setChoosingSize(false);
+              setTransition({ size: startSize, initial: true });
+              navigate(location.pathname, { replace: true, state: {} });
+            }}
+          >
+            랭킹 시작하기
+          </button>
+          <Link to="/">돌아가기</Link>
+        </section>
+      </main>
+    );
   if (error || !game) {
     return (
       <main className="wrap play-missing">

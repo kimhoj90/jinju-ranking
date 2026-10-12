@@ -6,7 +6,7 @@ import { useAuth, useSite } from '../context/AppContext';
 import { api } from '../lib/api';
 import { friendlyError } from '../lib/errors';
 import { num, percent } from '../lib/format';
-import type { Ballot, RankingResult } from '../lib/types';
+import type { Ballot, RankingResult, SeasonRanks } from '../lib/types';
 import { useShare } from './Home';
 
 export default function Ranking() {
@@ -18,15 +18,17 @@ export default function Ranking() {
   const cup = findBySlug(slug);
   const [data, setData] = useState<RankingResult | null>(null);
   const [mine, setMine] = useState<Ballot | null>(null);
+  const [seasons, setSeasons] = useState<SeasonRanks | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!cup || !user) return;
     let alive = true;
-    Promise.all([api.getRanking(cup.id), api.getMyBallot(cup.id)])
-      .then(([ranking, ballot]) => {
+    Promise.all([api.getRanking(cup.id), api.getMyBallot(cup.id), api.getSeasonRanks(cup.id)])
+      .then(([ranking, ballot, integrated]) => {
         if (!alive) return;
         setData(ranking);
+        setSeasons(integrated);
         setMine(ballot);
       })
       .catch((e) => alive && setError(friendlyError(e)));
@@ -67,9 +69,13 @@ export default function Ranking() {
             <span>
               <Users size={16} /> {num(data.participants)}명 참여
             </span>
-            {mine ? <span className="mypickinfo">내 1위가 반영되어 있어요</span> : <span className="mypickinfo">아직 내 결과가 반영되지 않았어요</span>}
+            {mine ? (
+              <span className="mypickinfo">내 1위가 반영되어 있어요</span>
+            ) : (
+              <span className="mypickinfo">아직 내 결과가 반영되지 않았어요</span>
+            )}
           </div>
-          {data.participants === 0 ? (
+          {data.participants === 0 && (!seasons || seasons.season_count < 2) ? (
             <div className="empty">
               <h3>아직 반영된 결과가 없어요.</h3>
               <p>첫 번째로 플레이하고 순위에 반영해보세요.</p>
@@ -79,9 +85,21 @@ export default function Ranking() {
               {data.rows.map((row, i) => (
                 <li key={row.id} className={(i < 3 ? 'top top' + (i + 1) : '') + (mine?.champion_id === row.id ? ' mine' : '')}>
                   <span className="rank">{i + 1}</span>
-                  <div className="rankthumb">{row.image_url ? <img src={row.image_url} alt="" loading="lazy" /> : <span>{row.name.slice(0, 1)}</span>}</div>
+                  <div className="rankthumb">
+                    {row.image_url ? <img src={row.image_url} alt="" loading="lazy" /> : <span>{row.name.slice(0, 1)}</span>}
+                  </div>
                   <div className="rankname">
                     <b>{row.name}</b>
+                    {seasons &&
+                      seasons.season_count > 1 &&
+                      (() => {
+                        const r = seasons.ranks.find((x) => x.candidate_id === row.id)?.rank;
+                        return r ? (
+                          <span className={'season-rank season-rank-' + r}>
+                            {r <= 3 ? ['🥇', '🥈', '🥉'][r - 1] + ' ' : ''}시즌 통합 {r}위
+                          </span>
+                        ) : null;
+                      })()}
                     {row.sub && <small>{row.sub}</small>}
                     {mine?.champion_id === row.id && <em className="mypick">내 1위</em>}
                   </div>

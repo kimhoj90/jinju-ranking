@@ -9,7 +9,7 @@ import { api } from '../lib/api';
 import { num } from '../lib/format';
 import { onceThisSession, savedGame, savedResult, visitorId } from '../lib/local';
 import { rankingUrl, shareLink } from '../lib/share';
-import { estimateMinutes, roundLabel } from '../lib/tournament';
+import { availableRounds, estimateMinutes, roundLabel } from '../lib/tournament';
 import type { PublicStats, Worldcup } from '../lib/types';
 
 /** 참여자 수가 이 숫자 이상일 때만 카드에 표시한다 (초기에 숫자가 작아 보이지 않도록) */
@@ -28,7 +28,7 @@ export function useShare() {
 
 function StartModal({ cup, stats, onClose }: { cup: Worldcup; stats?: PublicStats; onClose: () => void }) {
   const navigate = useNavigate();
-  const size = cup.candidates.length;
+  const [size, setSize] = useState(availableRounds(cup.candidates.length).at(-1) ?? 4);
   const game = savedGame.get();
   const inProgress = game && !game.done && game.cupId === cup.id && game.matches.length > 0;
   const finished = savedResult.get(cup.id);
@@ -37,7 +37,7 @@ function StartModal({ cup, stats, onClose }: { cup: Worldcup; stats?: PublicStat
     if (onceThisSession('view:' + cup.id)) void api.recordView(cup.id, visitorId()).catch(() => {});
   }, [cup.id]);
 
-  const play = (fresh: boolean) => navigate(`/r/${cup.slug}/play`, { state: { fresh } });
+  const play = (fresh: boolean) => navigate(`/r/${cup.slug}/play`, { state: { fresh, size } });
 
   return (
     <Modal onClose={onClose} labelledBy="modal-title">
@@ -47,6 +47,19 @@ function StartModal({ cup, stats, onClose }: { cup: Worldcup; stats?: PublicStat
       <span className="eyebrow">LET'S PICK</span>
       <h2 id="modal-title">{cup.title}</h2>
       {cup.description && <p>{cup.description}</p>}
+      <label className="round-select">
+        시작 라운드
+        <select value={size} onChange={(e) => setSize(Number(e.target.value))}>
+          {availableRounds(cup.candidates.length).map((n) => (
+            <option key={n} value={n}>
+              {n}강
+            </option>
+          ))}
+        </select>
+        <small>
+          후보 {cup.candidates.length}명 중 무작위 {size}명
+        </small>
+      </label>
       <div className="startinfo">
         <span>
           <Trophy size={19} /> {roundLabel(size)}
@@ -205,7 +218,7 @@ export default function Home() {
                   <div className="thumbnail">
                     <RankingThumb cup={cup} stats={stats[cup.id]} eager={i < 4} />
                     {cup.featured && <span className="recommendbadge">추천</span>}
-                    <span className="roundbadge">{roundLabel(cup.candidates.length)}</span>
+                    <span className="roundbadge">최대 {roundLabel(availableRounds(cup.candidates.length).at(-1) ?? 4)}</span>
                     <span className="hoverplay">
                       플레이하기 <ArrowUpRight size={20} />
                     </span>

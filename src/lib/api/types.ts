@@ -1,3 +1,4 @@
+import type { SeasonRanks, DuelComment, RecordArticle } from '../types';
 import type { Profile, AccountRow, CommunitySettings, Duel, DuelDraft, DuelResult, TvPage, TvEligibility, AdminTv } from '../types';
 import type {
   AdBanner,
@@ -24,7 +25,7 @@ import type {
 } from '../types';
 
 export type LoginProvider = 'kakao' | 'google' | 'demo-user' | 'demo-admin';
-export type MediaFolder = 'thumbnails' | 'candidates' | 'banners';
+export type MediaFolder = 'thumbnails' | 'candidates' | 'banners' | 'records';
 
 /**
  * 화면은 이 인터페이스만 사용한다.
@@ -32,6 +33,12 @@ export type MediaFolder = 'thumbnails' | 'candidates' | 'banners';
  */
 export interface Api {
   mode: 'supabase' | 'demo';
+  getSeasonRanks(id: string): Promise<SeasonRanks>;
+  getDuelComments(id: string): Promise<DuelComment[]>;
+  addDuelComment(id: string, body: string): Promise<void>;
+  listRecords(): Promise<RecordArticle[]>;
+  adminAddRecord(title: string, imageUrl: string): Promise<void>;
+  adminDeleteRecord(id: string): Promise<void>;
   getProfile(): Promise<Profile | null>;
   saveNickname(nickname: string): Promise<void>;
   setCommentLike(id: string, liked: boolean): Promise<void>;

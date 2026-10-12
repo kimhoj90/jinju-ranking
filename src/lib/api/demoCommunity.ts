@@ -1,9 +1,11 @@
-import type { AccountRow, AdminTv, CommunitySettings, Duel, DuelResult, Profile } from '../types';
+import type { DuelComment, RecordArticle, AccountRow, AdminTv, CommunitySettings, Duel, DuelResult, Profile } from '../types';
 import type { Api } from './types';
 import { demoWeek, validNickname, youtubeId } from '../community';
 const KEY = 'jr:demo-community-v1';
 interface Data {
   profiles: Record<string, Profile>;
+  duelComments?: (DuelComment & { user_id: string; duel_id: string })[];
+  records?: RecordArticle[];
   likes: Record<string, string[]>;
   duels: Duel[];
   votes: Record<string, Record<string, 'A' | 'B'>>;
@@ -58,6 +60,58 @@ export function demoCommunity(user: () => string, admin: () => string) {
     };
   };
   return {
+    async getDuelComments(id) {
+      const u = member(),
+        d = communityData();
+      if (!d.votes[id]?.[u]) throw Error('vote_first');
+      return (d.duelComments ?? [])
+        .filter((c) => c.duel_id === id)
+        .map((c) => ({
+          id: c.id,
+          choice: c.choice,
+          body: c.body,
+          created_at: c.created_at,
+          is_mine: c.user_id === u,
+          nickname: d.profiles[c.user_id]?.nickname ?? '닉네임 미설정',
+        }));
+    },
+    async addDuelComment(id, body) {
+      const u = member(),
+        d = communityData(),
+        choice = d.votes[id]?.[u];
+      if (!choice) throw Error('vote_first');
+      if (!d.duels.some((x) => x.id === id && x.status === 'published')) throw Error('voting_closed');
+      if (!body.trim() || [...body.trim()].length > 150) throw Error('check constraint');
+      d.duelComments ??= [];
+      if (d.duelComments.some((c) => c.duel_id === id && c.user_id === u)) throw Error('duel_comment_exists');
+      d.duelComments.push({
+        id: crypto.randomUUID(),
+        duel_id: id,
+        user_id: u,
+        body: body.trim(),
+        choice,
+        nickname: d.profiles[u].nickname,
+        created_at: new Date().toISOString(),
+        is_mine: true,
+      });
+      save(d);
+    },
+    async listRecords() {
+      return communityData().records ?? [];
+    },
+    async adminAddRecord(title, imageUrl) {
+      admin();
+      const d = communityData();
+      d.records ??= [];
+      d.records.unshift({ id: crypto.randomUUID(), title, image_url: imageUrl, created_at: new Date().toISOString() });
+      save(d);
+    },
+    async adminDeleteRecord(id) {
+      admin();
+      const d = communityData();
+      d.records = (d.records ?? []).filter((r) => r.id !== id);
+      save(d);
+    },
     async getProfile() {
       return communityData().profiles[user()] || null;
     },
@@ -214,6 +268,11 @@ export function demoCommunity(user: () => string, admin: () => string) {
     },
   } satisfies Pick<
     Api,
+    | 'getDuelComments'
+    | 'addDuelComment'
+    | 'listRecords'
+    | 'adminAddRecord'
+    | 'adminDeleteRecord'
     | 'getProfile'
     | 'saveNickname'
     | 'setCommentLike'

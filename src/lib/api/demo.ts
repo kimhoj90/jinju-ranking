@@ -69,7 +69,15 @@ function freshDb(): DemoDb {
       const { champion, runner } = verifyMatches(ids, matches);
       const at = new Date(Date.parse(cup.created_at) + v * 3600_000).toISOString();
       if (v % 3 === 0) {
-        ballots.push({ user_id: `seed-${ci}-${v}`, worldcup_id: cup.id, champion_id: champion, runner_up_id: runner, matches, created_at: at, updated_at: at });
+        ballots.push({
+          user_id: `seed-${ci}-${v}`,
+          worldcup_id: cup.id,
+          champion_id: champion,
+          runner_up_id: runner,
+          matches,
+          created_at: at,
+          updated_at: at,
+        });
       }
       completions[`${cup.id}|seed-${v}`] = { champion, runner };
     }
@@ -78,8 +86,22 @@ function freshDb(): DemoDb {
     worldcups,
     ballots,
     comments: [
-      { id: crypto.randomUUID(), user_id: 'seed-a', worldcup_id: 'food', body: '진주에 왔으면 냉면은 꼭 먹어야죠!', hidden: false, created_at: '2026-10-10T12:30:00+09:00' },
-      { id: crypto.randomUUID(), user_id: 'seed-b', worldcup_id: 'food', body: '육전 단독 메뉴로 나와서 반가워요 ㅎㅎ', hidden: false, created_at: '2026-10-10T18:10:00+09:00' },
+      {
+        id: crypto.randomUUID(),
+        user_id: 'seed-a',
+        worldcup_id: 'food',
+        body: '진주에 왔으면 냉면은 꼭 먹어야죠!',
+        hidden: false,
+        created_at: '2026-10-10T12:30:00+09:00',
+      },
+      {
+        id: crypto.randomUUID(),
+        user_id: 'seed-b',
+        worldcup_id: 'food',
+        body: '육전 단독 메뉴로 나와서 반가워요 ㅎㅎ',
+        hidden: false,
+        created_at: '2026-10-10T18:10:00+09:00',
+      },
     ],
     feedback: [],
     proposals: [],
@@ -145,8 +167,8 @@ function requireAdmin(): string {
   return u;
 }
 
-const delay = <T,>(value: T) => new Promise<T>((r) => setTimeout(() => r(value), 120));
-const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+const delay = <T>(value: T) => new Promise<T>((r) => setTimeout(() => r(value), 120));
+const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 const since = () => new Date(kstToday() + 'T00:00:00+09:00').getTime();
 
 export function resetDemo() {
@@ -163,9 +185,48 @@ export function createDemoApi(): Api {
 
   const api: Api = {
     mode: 'demo',
+    async getSeasonRanks(id) {
+      demoMember(requireUser());
+      const db = load(),
+        cup = db.worldcups.find((w) => w.id === id);
+      if (!cup) throw Error('worldcup_not_found');
+      const seasons = db.worldcups.filter((w) => (w.series_id ?? w.id) === (cup.series_id ?? cup.id) && w.published_at);
+      const cs = seasons.flatMap((w) => w.candidates),
+        lineage = (id: string) => cs.find((c) => c.id === id)?.lineage_id ?? id;
+      const representatives = [...new Map(cs.map((c) => [c.lineage_id ?? c.id, { ...c, id: c.lineage_id ?? c.id, active: true }])).values()];
+      const bs = db.ballots
+        .filter((b) => seasons.some((w) => w.id === b.worldcup_id))
+        .map((b) => ({
+          ...b,
+          champion_id: lineage(b.champion_id),
+          runner_up_id: lineage(b.runner_up_id),
+          matches: b.matches.map((m) => ({ a: lineage(m.a), b: lineage(m.b), winner: lineage(m.winner) })),
+        }));
+      const ranks = computeRanking(representatives, bs).rows;
+      return {
+        season_count: seasons.length,
+        ranks: cup.candidates
+          .filter((c) => c.active)
+          .map((c) => ({
+            candidate_id: c.id,
+            rank: ranks.findIndex((r) => r.id === (c.lineage_id ?? c.id)) + 1,
+            wins: ranks.find((r) => r.id === (c.lineage_id ?? c.id))?.wins ?? 0,
+          })),
+      };
+    },
     ...demoCommunity(requireUser, requireAdmin),
-    async myProposals() {const u=demoMember(requireUser()); return clone(load().proposals.filter(p=>p.user_id===u));},
-    async cancelProposal(id) {const u=demoMember(requireUser()),db=load(),p=db.proposals.find(p=>p.id===id&&p.user_id===u&&p.status==='pending');if(!p)throw Error('not_pending');p.status='cancelled';save(db);},
+    async myProposals() {
+      const u = demoMember(requireUser());
+      return clone(load().proposals.filter((p) => p.user_id === u));
+    },
+    async cancelProposal(id) {
+      const u = demoMember(requireUser()),
+        db = load(),
+        p = db.proposals.find((p) => p.id === id && p.user_id === u && p.status === 'pending');
+      if (!p) throw Error('not_pending');
+      p.status = 'cancelled';
+      save(db);
+    },
 
     async getUser() {
       const u = currentUser();
@@ -208,7 +269,9 @@ export function createDemoApi(): Api {
       const db = load();
       const out: Record<string, { completions: number; top_ids: string[] }> = {};
       for (const w of db.worldcups.filter((x) => x.status === 'published')) {
-        const entries = Object.entries(db.completions).filter(([k]) => k.startsWith(w.id + '|')).map(([, v]) => v);
+        const entries = Object.entries(db.completions)
+          .filter(([k]) => k.startsWith(w.id + '|'))
+          .map(([, v]) => v);
         const score = (id: string) => entries.filter((e) => e.champion === id).length * 1000 + entries.filter((e) => e.runner === id).length;
         const top = w.candidates
           .filter((c) => c.active && c.image_url)
@@ -243,7 +306,11 @@ export function createDemoApi(): Api {
     async getMyBallot(worldcupId) {
       const user = demoMember(requireUser());
       const b = load().ballots.find((x) => x.user_id === user && x.worldcup_id === worldcupId);
-      return delay(b ? ({ worldcup_id: b.worldcup_id, champion_id: b.champion_id, runner_up_id: b.runner_up_id, updated_at: b.updated_at } satisfies Ballot) : null);
+      return delay(
+        b
+          ? ({ worldcup_id: b.worldcup_id, champion_id: b.champion_id, runner_up_id: b.runner_up_id, updated_at: b.updated_at } satisfies Ballot)
+          : null,
+      );
     },
 
     async submitBallot(worldcupId, matches, replace) {
@@ -261,7 +328,15 @@ export function createDemoApi(): Api {
         save(db);
         return delay('replaced' as const);
       }
-      db.ballots.push({ user_id: user, worldcup_id: worldcupId, champion_id: champion, runner_up_id: runner, matches, created_at: now, updated_at: now });
+      db.ballots.push({
+        user_id: user,
+        worldcup_id: worldcupId,
+        champion_id: champion,
+        runner_up_id: runner,
+        matches,
+        created_at: now,
+        updated_at: now,
+      });
       save(db);
       return delay('created' as const);
     },
@@ -271,7 +346,12 @@ export function createDemoApi(): Api {
       const db = load();
       const cup = db.worldcups.find((w) => w.id === worldcupId);
       if (!cup) throw new Error('worldcup_not_found');
-      return delay(computeRanking(cup.candidates, db.ballots.filter((b) => b.worldcup_id === worldcupId)));
+      return delay(
+        computeRanking(
+          cup.candidates,
+          db.ballots.filter((b) => b.worldcup_id === worldcupId),
+        ),
+      );
     },
 
     async listComments(worldcupId) {
@@ -280,7 +360,14 @@ export function createDemoApi(): Api {
         load()
           .comments.filter((c) => c.worldcup_id === worldcupId && (!c.hidden || c.user_id === user))
           .sort((a, b) => b.created_at.localeCompare(a.created_at))
-          .map((c) => ({ id: c.id, body: c.body, created_at: c.created_at, is_mine: c.user_id === user, hidden: c.hidden, ...demoComment(c.id,user,c.user_id) })),
+          .map((c) => ({
+            id: c.id,
+            body: c.body,
+            created_at: c.created_at,
+            is_mine: c.user_id === user,
+            hidden: c.hidden,
+            ...demoComment(c.id, user, c.user_id),
+          })),
       );
     },
 
@@ -292,7 +379,14 @@ export function createDemoApi(): Api {
       if (db.comments.some((c) => c.user_id === user && c.worldcup_id === worldcupId)) {
         throw new Error('comments_user_id_worldcup_id_key');
       }
-      db.comments.push({ id: crypto.randomUUID(), user_id: user, worldcup_id: worldcupId, body: text, hidden: false, created_at: new Date().toISOString() });
+      db.comments.push({
+        id: crypto.randomUUID(),
+        user_id: user,
+        worldcup_id: worldcupId,
+        body: text,
+        hidden: false,
+        created_at: new Date().toISOString(),
+      });
       save(db);
     },
 
@@ -341,7 +435,14 @@ export function createDemoApi(): Api {
       const db = load();
       const today = db.proposals.filter((p) => p.user_id === user && Date.parse(p.created_at) >= since());
       if (today.length >= 3) throw new Error('daily_limit');
-      db.proposals.push({ ...input, id: crypto.randomUUID(), user_id: user, status: 'pending', worldcup_id: null, created_at: new Date().toISOString() });
+      db.proposals.push({
+        ...input,
+        id: crypto.randomUUID(),
+        user_id: user,
+        status: 'pending',
+        worldcup_id: null,
+        created_at: new Date().toISOString(),
+      });
       save(db);
     },
 
@@ -370,7 +471,16 @@ export function createDemoApi(): Api {
       const user = demoMember(requireUser());
       const db = load();
       if (!db.surveys.some((s) => s.id === surveyId && s.user_id === user)) throw new Error('row-level security');
-      db.surveyRequests.push({ id: crypto.randomUUID(), user_id: user, survey_id: surveyId, kind, reason, payload: payload ?? null, status: 'pending', created_at: new Date().toISOString() });
+      db.surveyRequests.push({
+        id: crypto.randomUUID(),
+        user_id: user,
+        survey_id: surveyId,
+        kind,
+        reason,
+        payload: payload ?? null,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+      });
       save(db);
     },
 
@@ -403,14 +513,11 @@ export function createDemoApi(): Api {
       const db = load();
       const now = new Date().toISOString();
       let cup = draft.id ? db.worldcups.find((w) => w.id === draft.id) : undefined;
-      const wasPublished = !!cup?.published_at;
-      const keep = new Set(draft.candidates.map((c) => c.id).filter(Boolean));
-      if (cup && wasPublished && cup.candidates.some((c) => c.active && !keep.has(c.id))) throw new Error('published_locked');
-      if (wasPublished && draft.candidates.some((c) => !c.id || !cup!.candidates.some((x) => x.id === c.id))) throw new Error('published_locked');
+
       const names = draft.candidates.map((c) => c.name.trim().toLowerCase());
       if (new Set(names).size !== names.length) throw new Error('duplicate_name');
       const n = draft.candidates.length;
-      if (draft.status === 'published' && ![4, 8, 16, 32, 64, 128].includes(n)) throw new Error('invalid_candidate_count');
+      if (draft.status === 'published' && (n < 4 || n > 128)) throw new Error('invalid_candidate_count');
 
       if (!cup) {
         cup = {
@@ -422,9 +529,17 @@ export function createDemoApi(): Api {
         cup.candidates = [];
         db.worldcups.push(cup);
       }
+      const source = db.worldcups.find((w) => w.id === draft.source_season_id);
+      cup.series_id ??= source?.series_id ?? source?.id ?? cup.id;
       const previous: Candidate[] = cup.candidates.map((c) => ({ ...c, active: false }));
       const next: Candidate[] = draft.candidates.map((c, i) => ({
         id: c.id ?? crypto.randomUUID(),
+        lineage_id:
+          cup!.candidates.find((x) => x.id === c.id)?.lineage_id ??
+          cup!.candidates.find((x) => x.id === c.id)?.id ??
+          source?.candidates.find((x) => x.id === c.source_candidate_id)?.lineage_id ??
+          c.source_candidate_id ??
+          crypto.randomUUID(),
         name: c.name.trim(),
         sub: c.sub.trim(),
         image_url: c.image_url,
@@ -441,7 +556,7 @@ export function createDemoApi(): Api {
         sort_order: draft.sort_order,
         thumbnail_url: draft.thumbnail_url,
         candidate_count: n,
-        published_at: draft.status === 'published' ? cup.published_at ?? now : cup.published_at,
+        published_at: draft.status === 'published' ? (cup.published_at ?? now) : cup.published_at,
         candidates: [...previous.filter((c) => !nextIds.has(c.id)), ...next],
       });
       if (proposalId) {
@@ -471,7 +586,10 @@ export function createDemoApi(): Api {
       requireAdmin();
       const db = load();
       const p = db.proposals.find((x) => x.id === id);
-      if (p) {p.status = 'rejected';p.review_note = note;}
+      if (p) {
+        p.status = 'rejected';
+        p.review_note = note;
+      }
       save(db);
     },
 

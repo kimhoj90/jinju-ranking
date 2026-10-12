@@ -1,5 +1,7 @@
 // 서버 오류를 사용자에게 보여줄 쉬운 말로 바꾼다.
 const MESSAGES: [RegExp, string][] = [
+  [/duel_comment_exists/, '이 주제에는 이미 댓글을 남겼어요.'],
+  [/vote_first/, '먼저 A 또는 B에 투표해주세요.'],
   [/nickname_required/, '먼저 사이트에서 사용할 닉네임을 설정해주세요.'],
   [/nickname_taken|profiles_nickname_unique/, '이미 사용 중인 닉네임이에요. 다른 이름을 골라주세요.'],
   [/invalid_nickname/, '한글·영문·숫자로 1~10자 입력해주세요.'],
@@ -20,7 +22,7 @@ const MESSAGES: [RegExp, string][] = [
   [/published_locked/, '공개된 랭킹은 후보를 추가하거나 뺄 수 없어요. 「새 시즌」으로 만들어주세요.'],
   [/duplicate_name|candidates_active_name_uniq/, '같은 이름의 후보가 있어요.'],
   [/admin_only/, '운영자만 할 수 있어요.'],
-  [/invalid_matches|invalid_worldcup/, '대결 기록이 올바르지 않아요. 다시 플레이해주세요.'],
+  [/invalid_matches|invalid_worldcup/, '후보 구성이 변경됐거나 대결 기록이 맞지 않아요. 새로 플레이해주세요.'],
   [/worldcup_not_found/, '랭킹을 찾을 수 없어요. 공개가 끝났을 수 있어요.'],
   [/invalid_candidates/, '후보 이름(30자)과 설명(60자)을 확인해주세요.'],
   [/check constraint|violates check/, '입력한 내용의 글자 수나 형식을 확인해주세요.'],
@@ -31,7 +33,11 @@ const MESSAGES: [RegExp, string][] = [
 
 export function friendlyError(error: unknown): string {
   const message =
-    error instanceof Error ? error.message : typeof error === 'object' && error && 'message' in error ? String((error as { message: unknown }).message) : String(error);
+    error instanceof Error
+      ? error.message
+      : typeof error === 'object' && error && 'message' in error
+        ? String((error as { message: unknown }).message)
+        : String(error);
   for (const [pattern, text] of MESSAGES) {
     if (pattern.test(message)) return text;
   }

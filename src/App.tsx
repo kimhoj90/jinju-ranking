@@ -1,3 +1,4 @@
+import Records from './pages/Records';
 import Duel from './pages/Duel';
 import YouTubeTv from './pages/YouTubeTv';
 import Nickname from './pages/Nickname';
@@ -12,7 +13,7 @@ import Login from './pages/Login';
 import Play from './pages/Play';
 import Ranking from './pages/Ranking';
 import Result from './pages/Result';
-import { Contact, NotFound, Privacy, Records, Terms } from './pages/StaticPages';
+import { Contact, NotFound, Privacy, Terms } from './pages/StaticPages';
 import { SurveyBoard, SurveyDetail, SurveyWrite } from './pages/Surveys';
 
 // 운영자 화면과 에디터는 필요할 때만 불러온다 (첫 화면을 가볍게)

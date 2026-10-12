@@ -3,8 +3,8 @@ import type { Candidate, Match, RankingResult } from './types';
 
 /** 대결 기록이 올바른 토너먼트인지 확인하고 우승자와 2위를 돌려준다 */
 export function verifyMatches(candidateIds: string[], matches: Match[]): { champion: string; runner: string } {
-  const n = candidateIds.length;
-  if (matches.length !== n - 1) throw new Error('invalid_matches');
+  const n = matches.length + 1;
+  if (![4, 8, 16, 32, 64, 128].includes(n) || n > candidateIds.length) throw new Error('invalid_matches');
   const ids = new Set(candidateIds);
   const seen = new Set<string>();
   let next: string[] = [];
@@ -34,10 +34,7 @@ export function verifyMatches(candidateIds: string[], matches: Match[]): { champ
   return { champion, runner: last.a === champion ? last.b : last.a };
 }
 
-export function computeRanking(
-  candidates: Candidate[],
-  ballots: { champion_id: string; runner_up_id: string; matches: Match[] }[],
-): RankingResult {
+export function computeRanking(candidates: Candidate[], ballots: { champion_id: string; runner_up_id: string; matches: Match[] }[]): RankingResult {
   const rows = candidates
     .filter((c) => c.active)
     .map((c) => {

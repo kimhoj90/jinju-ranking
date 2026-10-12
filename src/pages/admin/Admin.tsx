@@ -1,3 +1,4 @@
+import { RecordsAdmin } from '../Records';
 import { AccountsAdmin, DuelsAdmin, TvAdmin } from './CommunityAdmin';
 import { ArrowLeft, Check, ClipboardList, Eye, EyeOff, ImagePlus, Lock, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -25,14 +26,14 @@ import { adminUpload, emptyDraft, proposalToDraft, publishProposalImages, season
 
 const TABS = [
   ['rankings', '랭킹 관리'],
-  ['proposals', '제안함'],
-  ['feedback', '의견함'],
-  ['comments', '댓글 관리'],
-  ['ads', '광고·문의 설정'],
-  ['surveys', '설문 승인함'],
   ['duels', '양자택일'],
   ['tv', '유튜브 TV'],
+  ['proposals', '제안 및 의견함'],
+  ['surveys', '설문 승인함'],
+  ['comments', '댓글 관리'],
+  ['ads', '광고·문의 설정'],
   ['accounts', '계정·이용 규칙'],
+  ['records', '진주기록'],
 ] as const;
 type Tab = (typeof TABS)[number][0];
 
@@ -161,13 +162,12 @@ function EditRanking({ season }: { season?: boolean }) {
   const { toast } = useUi();
   const [state, setState] = useState<{
     draft: WorldcupDraft;
-    locked: boolean;
   } | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!id) {
-      setState({ draft: emptyDraft(), locked: false });
+      setState({ draft: emptyDraft() });
       return;
     }
     api
@@ -175,7 +175,7 @@ function EditRanking({ season }: { season?: boolean }) {
       .then((cups) => {
         const cup = cups.find((c) => c.id === id);
         if (!cup) throw new Error('랭킹을 찾을 수 없어요.');
-        setState(season ? { draft: seasonDraft(cup), locked: false } : { draft: worldcupToDraft(cup), locked: !!cup.published_at });
+        setState(season ? { draft: seasonDraft(cup) } : { draft: worldcupToDraft(cup) });
       })
       .catch((e) => setError(friendlyError(e)));
   }, [id, season]);
@@ -187,7 +187,6 @@ function EditRanking({ season }: { season?: boolean }) {
       initial={state.draft}
       mode="admin"
       heading={!id ? '새 랭킹' : season ? '새 시즌 만들기' : '랭킹 편집'}
-      locked={state.locked}
       uploadImage={adminUpload}
       onCancel={() => navigate('/admin')}
       onSubmit={async (draft) => {
@@ -798,14 +797,21 @@ function AdminHome() {
         ))}
       </div>
       {tab === 'rankings' && <RankingsTab />}
-      {tab === 'proposals' && <ProposalsTab />}
-      {tab === 'feedback' && <FeedbackTab />}
+      {tab === 'proposals' && (
+        <>
+          <h2>랭킹 제안</h2>
+          <ProposalsTab />
+          <h2 className="section-divider">의견함</h2>
+          <FeedbackTab />
+        </>
+      )}
       {tab === 'comments' && <CommentsTab />}
       {tab === 'ads' && <AdsTab />}
       {tab === 'surveys' && <SurveysTab />}
       {tab === 'duels' && <DuelsAdmin />}
       {tab === 'tv' && <TvAdmin />}
       {tab === 'accounts' && <AccountsAdmin />}
+      {tab === 'records' && <RecordsAdmin />}
     </>
   );
 }
