@@ -3328,6 +3328,7 @@ select {
   min-height: 38px;
 }
 .tv-nickname {
+  min-width: 0;
   font-size: 11px;
   color: #efeadb;
   overflow: hidden;
@@ -3336,6 +3337,7 @@ select {
   flex: 1;
 }
 .tv-controls i {
+  flex-shrink: 0;
   width: 12px;
   height: 12px;
   background: #242b23;
@@ -3614,12 +3616,17 @@ select {
 .ranking-management-list .ranking-stats { display: grid; grid-template-columns: 112px repeat(3, 88px); gap: 10px 20px; }
 .ranking-management-list > div > .rowactions { flex: 0 0 210px; justify-content: flex-end; }
 .ranking-management-list > div { min-height: 142px; }
-.tv-reactions { display: flex; gap: 3px; align-items: center; }
+.tv-reactions { display: flex; flex-shrink: 0; gap: 3px; align-items: center; }
 .tv-controls .tv-reactions button { display: inline-flex; gap: 3px; align-items: center; padding: 5px 3px; }
 .tv-reactions button[aria-pressed='true'] { color: #d5ee9e; }
-.tv-controls:has(.tv-reactions) { flex-wrap: wrap; gap: 6px; }
-.tv-controls:has(.tv-reactions) > .tv-nickname { flex-basis: 100%; }
-.tv-controls:has(.tv-reactions) > i { margin-right: auto; }
+.tv-controls:has(.tv-reactions) { flex-wrap: nowrap; gap: 4px; }
+.tv-controls .tv-report { display: inline-flex; flex-shrink: 0; align-items: center; gap: 3px; white-space: nowrap; }
+@media(max-width: 480px) {
+ .tv-controls:has(.tv-reactions) { gap: 3px; }
+ .tv-controls .tv-report span { display: none; }
+ .tv-controls .tv-reactions button { padding-inline: 1px; }
+ .tv-reactions { gap: 1px; }
+}
 @media(max-width: 700px) {
  .ranking-management-list .ranking-stats { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px 14px; }
  .ranking-management-list > div > .rowactions { flex-basis: 100%; }

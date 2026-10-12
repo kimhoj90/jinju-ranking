@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Siren } from 'lucide-react';
 import Modal from '../components/Modal';
 import LoginPrompt from '../components/LoginPrompt';
 import { useAuth } from '../context/AppContext';
@@ -45,8 +45,8 @@ function Tv({ item, onReport, onReact }: { item?: TvItem; onReport: (id: number)
         )}
       </div>
       <div className="tv-controls">
-        <span className="tv-nickname">{item && !off ? item.nickname : 'JINJU TV'}</span>
         <i aria-hidden="true" />
+        <span className="tv-nickname" title={item && !off ? item.nickname : 'JINJU TV'}>{item && !off ? item.nickname : 'JINJU TV'}</span>
         {item && !off && <div className="tv-reactions">
           {(['like','dislike'] as const).map(kind=><button key={kind} disabled={busy} aria-label={kind==='like'?'좋아요':'싫어요'} aria-pressed={item.reaction===kind} onClick={async()=>{setBusy(true);try{await onReact(item.id,item.reaction===kind?null:kind);}finally{setBusy(false);}}}>
             {kind==='like'?<ThumbsUp size={14}/>:<ThumbsDown size={14}/>}<span>{kind==='like'?(item.likes??0):(item.dislikes??0)}</span>
@@ -55,7 +55,9 @@ function Tv({ item, onReport, onReact }: { item?: TvItem; onReport: (id: number)
         {item && !off && (
           <button
             disabled={busy}
+            className="tv-report"
             aria-label="추천 영상 신고"
+            title="신고"
             onClick={async () => {
               if (!user) {
                 await onReport(item.id);
@@ -69,7 +71,7 @@ function Tv({ item, onReport, onReact }: { item?: TvItem; onReport: (id: number)
               }
             }}
           >
-            신고
+            <Siren size={14} aria-hidden="true" /><span>신고</span>
           </button>
         )}
       </div>
