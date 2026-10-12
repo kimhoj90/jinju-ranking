@@ -122,6 +122,9 @@ export interface AdminComment {
 }
 
 export interface AdBanner {
+  contact?: string;
+  starts_on?: string;
+  ends_on?: string;
   slot: number;
   title: string;
   image_url: string;
@@ -237,6 +240,7 @@ export interface CommunitySettings {
   report_threshold: number;
 }
 export interface Duel {
+  thumbnail_url?: string;
   id: string;
   question: string;
   option_a: string;

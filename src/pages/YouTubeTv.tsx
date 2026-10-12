@@ -8,6 +8,9 @@ import type { TvEligibility, TvItem, TvPage } from '../lib/types';
 function Tv({ item, onReport }: { item?: TvItem; onReport: (id: number) => Promise<void> }) {
   const [failed, setFailed] = useState(false),
     [busy, setBusy] = useState(false);
+  const [title,setTitle] = useState('');
+  const [titleRequested,setTitleRequested] = useState(false);
+  const loadTitle = async () => {if(titleRequested || !item?.video_id)return;setTitleRequested(true);try{const response=await fetch(`/api/youtube-title?id=${encodeURIComponent(item.video_id)}`);if(response.ok){const data=await response.json();if(typeof data.title==='string')setTitle(data.title);}}catch{/* 링크는 계속 사용 가능 */}};
   const { user } = useAuth();
   const off = !item || item.off || failed;
   return (
@@ -22,6 +25,8 @@ function Tv({ item, onReport }: { item?: TvItem; onReport: (id: number) => Promi
             href={`https://www.youtube.com/watch?v=${item.video_id}`}
             target="_blank"
             rel="noopener noreferrer"
+            title={title || '유튜브에서 영상 보기'}
+            onMouseEnter={()=>void loadTitle()} onFocus={()=>void loadTitle()}
             aria-label={`${item.nickname}님 추천 영상, 유튜브 새 탭에서 열기`}
           >
             <img
@@ -33,6 +38,7 @@ function Tv({ item, onReport }: { item?: TvItem; onReport: (id: number) => Promi
                 if (e.currentTarget.naturalWidth < 200) setFailed(true);
               }}
             />
+            {title && <span className="tv-video-title">{title}</span>}
           </a>
         )}
       </div>
@@ -148,8 +154,8 @@ export default function YouTubeTv() {
       <div className="wrap">
         <header className="tv-heading">
           <span>JINJU PEOPLE’S CHANNELS</span>
-          <h1>요즘 유튜브 뭐봄</h1>
-          <p>이번 주, 당신이 보고 있는 한 편.</p>
+          <h1>요즘 유튭 뭐 봄?</h1>
+          <p>이번 주 당신이 재밌게 본 한 편</p>
         </header>
         <section className="tv-submit">
           {!user ? (

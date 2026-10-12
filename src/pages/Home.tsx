@@ -214,7 +214,7 @@ export default function Home() {
                 <Link className="cardmain" to={`/r/${cup.slug}`}>
                   <div className="thumbnail">
                     <RankingThumb cup={cup} stats={stats[cup.id]} eager={i < 4} />
-                    {cup.featured && <span className="recommendbadge">추천</span>}
+
                     <span className="roundbadge">최대 {roundLabel(availableRounds(cup.candidates.length).at(-1) ?? 4)}</span>
                     <span className="hoverplay">
                       플레이하기 <ArrowUpRight size={20} />
@@ -230,7 +230,7 @@ export default function Home() {
                   <button disabled={!ready} aria-label={cup.title + ' 순위'} onClick={() => {
                     const next = `/r/${cup.slug}/ranking`;
                     navigate(user ? next : loginPath(next));
-                  }}><Trophy size={14} />순위</button>
+                  }}><Trophy size={14} />결과</button>
                   <button aria-label={cup.title + ' 공유'} onClick={() => void share(cup)}><Share2 size={14} />공유</button>
                 </div>
               </article>

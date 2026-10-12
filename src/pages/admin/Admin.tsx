@@ -10,7 +10,7 @@ import { useAuth, useSite, useUi } from '../../context/AppContext';
 import { api } from '../../lib/api';
 import { friendlyError } from '../../lib/errors';
 import { formatDate, formatDateTime, num } from '../../lib/format';
-import { compressImage, IMAGE_ACCEPT, IMAGE_PRESETS } from '../../lib/image';
+import { compressImage, IMAGE_PRESETS } from '../../lib/image';
 import type {
   AdBanner,
   AdminComment,
@@ -102,14 +102,12 @@ function RankingsTab() {
           const s = data.stats[cup.id];
           return (
             <div key={cup.id}>
-              <div className="admin-thumbnail">
-                <RankingThumb cup={cup} />
-              </div>
-              <div>
+              <Link className="admin-thumbnail" to={`/admin/rankings/${cup.id}`}><RankingThumb cup={cup} /></Link>
+              <Link className="admin-detail-link" to={`/admin/rankings/${cup.id}`}>
                 <h3>{cup.title}</h3>
                 <p>
                   <span className={'statuschip ' + cup.status}>{STATUS_LABEL[cup.status]}</span> · {cup.candidates.length}개 후보
-                  {cup.featured && ' · 홈 추천'}
+
                 </p>
                 <dl className="ranking-stats">
                   <div>
@@ -133,7 +131,7 @@ function RankingsTab() {
                     <dd>{num(s?.comments ?? 0)}개</dd>
                   </div>
                 </dl>
-              </div>
+              </Link>
               <div className="rowactions">
                 {cup.status === 'published' && (
                   <Link className="textbtn" to={`/r/${cup.slug}/ranking`}>
@@ -593,7 +591,8 @@ function AdsTab() {
     setUploading(slot);
     setError('');
     try {
-      const blob = await compressImage(file, IMAGE_PRESETS.banner);
+      if (file.type === 'image/gif' && file.size > 2 * 1024 * 1024) throw Error('GIF는 2MB 이하로 올려주세요.');
+      const blob = file.type === 'image/gif' ? file : await compressImage(file, IMAGE_PRESETS.banner);
       setAd(slot, { image_url: await api.uploadMedia(blob, 'banners') });
     } catch (e) {
       setError(friendlyError(e));
@@ -603,6 +602,7 @@ function AdsTab() {
   };
 
   const save = async () => {
+    if(config.ads.some(a=>a.starts_on && a.ends_on && a.starts_on>a.ends_on)){setError('게시 종료일은 시작일 이후여야 해요.');return;}
     const bad = config.ads.find((a) => a.link_url.trim() && !/^https?:\/\//i.test(a.link_url.trim()));
     if (bad) {
       setError(`배너 ${bad.slot}의 주소는 https:// 로 시작해야 해요.`);
@@ -625,7 +625,7 @@ function AdsTab() {
     <section className="adsettings editor">
       <h2>광고 배너</h2>
       <p className="muted">
-        상단 왼쪽부터 1~4번 순서로 보여요. 이미지와 클릭할 주소를 등록하고 「노출」을 켜주세요. 가로:세로 약 3.2:1 이미지가 잘 맞아요.
+        상단 왼쪽부터 1~4번 순서로 보여요. 이미지와 클릭할 주소를 등록하고 「노출」을 켜주세요. 권장 제작 크기는 640×200px (기본 320×100px)입니다. JPG·PNG·WebP·GIF를 지원하며 GIF는 2MB 이하로 올려주세요.
       </p>
       <div className="adeditgrid">
         {config.ads.map((ad) => (
@@ -642,12 +642,15 @@ function AdsTab() {
             </div>
             <label>
               이미지
-              <input type="file" accept={IMAGE_ACCEPT} disabled={uploading !== null} onChange={(e) => void upload(ad.slot, e.target.files?.[0])} />
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploading !== null} onChange={(e) => void upload(ad.slot, e.target.files?.[0])} />
             </label>
             <label>
-              광고명
+              광고주
               <input maxLength={60} value={ad.title} onChange={(e) => setAd(ad.slot, { title: e.target.value })} />
             </label>
+            <label>연락처 (관리자만 표시)<input value={ad.contact ?? ''} maxLength={120} onChange={e=>setAd(ad.slot,{contact:e.target.value})}/></label>
+            <div className="two"><label>게시 시작일<input type="date" value={ad.starts_on ?? ''} onChange={e=>setAd(ad.slot,{starts_on:e.target.value})}/></label><label>게시 종료일<input type="date" min={ad.starts_on} value={ad.ends_on ?? ''} onChange={e=>setAd(ad.slot,{ends_on:e.target.value})}/></label></div>
+            <small>한국 시간 기준, 종료일까지 표시해요. 비워 두면 기간 제한이 없어요.</small>
             <label>
               클릭할 주소
               <input type="url" placeholder="https://" value={ad.link_url} onChange={(e) => setAd(ad.slot, { link_url: e.target.value })} />
@@ -660,6 +663,7 @@ function AdsTab() {
               onClick={() =>
                 setAd(ad.slot, {
                   title: '',
+                  contact: '', starts_on: '', ends_on: '',
                   image_url: '',
                   link_url: '',
                   active: false,

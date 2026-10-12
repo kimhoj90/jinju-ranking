@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { SquareCheck } from 'lucide-react';
+import { Play, BarChart3, Share2 } from 'lucide-react';
+import { shareLink } from '../lib/share';
+import { useUi } from '../context/AppContext';
 import LoginPrompt from '../components/LoginPrompt';
 import { useAuth } from '../context/AppContext';
 import { api } from '../lib/api';
@@ -73,10 +75,13 @@ export default function Duel() {
   };
   const vote = async (choice: 'A' | 'B') => {
     if (!id) return;
+    if (result?.choice && result.choice !== choice && !confirm('선택을 바꾸면 기존 댓글이 삭제됩니다. 바꿀까요?')) return;
     setBusy(true);
     setError('');
     try {
       setResult(await api.voteDuel(id, choice));
+      setComments(await api.getDuelComments(id));
+      setBody('');
     } catch (e) {
       setError(friendlyError(e));
       try {
@@ -129,7 +134,7 @@ export default function Duel() {
               <section className="duel-choice-column" key={choice}>
                 <button
                   className={'secondary ' + (result?.choice === choice ? 'chosen' : '')}
-                  disabled={!user || !!profile?.blocked || busy || !!result?.choice || duel.status !== 'published'}
+                  disabled={!user || !!profile?.blocked || busy || result?.choice === choice || duel.status !== 'published'}
                   onClick={() => void vote(choice)}
                 >
                   <b>
@@ -149,11 +154,7 @@ export default function Duel() {
                           .filter((c) => c.choice === choice)
                           .map((c) => (
                             <li key={c.id}>
-                              <p>{c.body}</p>
-                              <small>
-                                {c.nickname}
-                                {c.is_mine ? ' · 내 댓글' : ''}
-                              </small>
+                              <p><strong>{c.nickname}</strong> {c.body}{c.is_mine && <small> · 내 댓글</small>}</p>
                             </li>
                           ))}
                       </ul>
@@ -192,13 +193,14 @@ export default function Duel() {
               </section>
             ))}
           </div>
-          <small>한 주제에 한 번만 투표할 수 있고, 선택은 바꿀 수 없어요.</small>
+          <small>선택은 바꿀 수 있어요. 선택을 바꾸면 기존 댓글은 삭제돼요.</small>
         </>
       )}
     </main>
   );
 }
 export function DuelCards({ query, onCount }: { query: string; onCount: (n: number) => void }) {
+  const { toast } = useUi();
   const [rows, setRows] = useState<DuelType[]>([]),
     [error, setError] = useState('');
   useEffect(() => {
@@ -221,19 +223,21 @@ export function DuelCards({ query, onCount }: { query: string; onCount: (n: numb
           <Link to={`/duels/${d.id}`} className="cardmain">
             <div className="thumbnail duel-thumbnail">
               <span className="roundbadge">양자택일</span>
-              <div className="duel-card-options">
+              {d.thumbnail_url ? <img className="ranking-thumb-image" src={d.thumbnail_url} alt="" /> : <div className="duel-card-options">
                 <span>{d.option_a}</span>
                 <b>VS</b>
                 <span>{d.option_b}</span>
-              </div>
+              </div>}
             </div>
             <div className="cardcopy">
               <h3>{d.question}</h3>
               <p>{d.status === 'published' ? '진행 중인 양자택일' : '지난 양자택일'}</p>
             </div>
           </Link>
-          <div className="cardbottom">
-            <Link className="card-action" to={`/duels/${d.id}`}><SquareCheck size={14} /> 나의 선택은?</Link>
+          <div className="cardbottom ranking-card-actions">
+            <Link to={`/duels/${d.id}`}><Play size={14}/>시작</Link>
+            <Link to={`/duels/${d.id}`}><BarChart3 size={14}/>결과</Link>
+            <button onClick={async()=>{const url=`${location.origin}/duels/${d.id}`;const r=await shareLink(d.question,url);if(r==='copied')toast('링크를 복사했어요.');if(r==='failed')toast(url);}}><Share2 size={14}/>공유</button>
           </div>
         </article>
       ))}

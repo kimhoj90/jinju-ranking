@@ -310,9 +310,7 @@ export default function RankingEditor({ initial, mode, onSubmit, onCancel, onRej
                 </select>
               </label>
               <div className="two">
-                <label className="checkbox">
-                  <input type="checkbox" checked={draft.featured} onChange={(e) => set('featured', e.target.checked)} /> 홈 추천 (맨 앞)
-                </label>
+
                 <label>
                   홈 노출 순서
                   <input
@@ -378,7 +376,7 @@ export default function RankingEditor({ initial, mode, onSubmit, onCancel, onRej
             </button>
           )}
           {mode === 'proposal' && <small className="muted">제안 사진은 JPG, PNG, WebP 형식, 2MB 이하만 가능해요.</small>}
-          <small className="muted">기본은 후보 사진과 이름으로 자동 생성해요. 처음에는 무작위 2명, 결과가 쌓이면 우승 횟수 1·2위를 보여줘요.</small>
+          <small className="muted">기본은 후보 사진과 이름으로 자동 생성해요. 처음에는 무작위 후보, 결과가 쌓이면 우승 횟수 1·2위를 보여줘요.</small>
         </div>
       </div>
 

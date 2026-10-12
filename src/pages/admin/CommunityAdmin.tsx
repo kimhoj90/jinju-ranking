@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { Plus, Pencil } from 'lucide-react';
+import { compressImage } from '../../lib/image';
 import { api } from '../../lib/api';
 import { friendlyError } from '../../lib/errors';
 import type { AccountRow, AdminTv, CommunitySettings, Duel, DuelDraft } from '../../lib/types';
 const blank: DuelDraft = {
+  thumbnail_url: '',
   question: '',
   option_a: '',
   option_b: '',
@@ -44,12 +47,12 @@ export function DuelsAdmin() {
   return (
     <section>
       {error && <p className="error">{error}</p>}
-      <button className="primary" onClick={() => setDraft({ ...blank })}>
-        양자택일 만들기
-      </button>
+      {!draft && <div className="sectionhead"><h2>양자택일 관리</h2><button className="primary" onClick={() => setDraft({ ...blank })}><Plus size={18}/> 새 양자택일</button></div>}
       {draft && (
         <form className="contactform community-editor" onSubmit={save}>
           <h2>{draft.id ? '양자택일 편집' : '새 양자택일'}</h2>
+          <label>썸네일 (선택)<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={async e=>{const file=e.target.files?.[0];if(!file)return;setBusy(true);setError('');try{const blob=await compressImage(file,{maxInputMb:2,maxSide:1200});const url=await api.uploadMedia(blob,'thumbnails');setDraft(d=>d&&({...d,thumbnail_url:url}));}catch(err){setError(friendlyError(err));}finally{setBusy(false);}}}/></label>
+          {draft.thumbnail_url && <><img className="duel-editor-thumb" src={draft.thumbnail_url} alt="썸네일 미리보기"/><button type="button" onClick={()=>setDraft({...draft,thumbnail_url:''})}>썸네일 삭제</button></>}
           <label>
             주제
             <input required maxLength={100} value={draft.question} onChange={(e) => setDraft({ ...draft, question: e.target.value })} />
@@ -100,25 +103,11 @@ export function DuelsAdmin() {
           </div>
         </form>
       )}
-      <div className="adminlist">
-        {rows.map((d) => (
-          <article key={d.id}>
-            <h3>{d.question}</h3>
-            <p>
-              {d.option_a} / {d.option_b} · {d.status === 'published' ? '공개' : '보관'}
-            </p>
-            <button
-              className="secondary"
-              onClick={() => {
-                const { created_at: _, ...edit } = d;
-                setDraft(edit);
-              }}
-            >
-              편집
-            </button>
-          </article>
-        ))}
-      </div>
+      {!draft && <div className="adminlist ranking-management-list">{rows.map(d=><div key={d.id}>
+        <button className="admin-thumbnail" aria-label={d.question+' 편집'} onClick={()=>setDraft({...d})}>{d.thumbnail_url?<img className="ranking-thumb-image" src={d.thumbnail_url} alt=""/>:<span>{d.option_a} VS {d.option_b}</span>}</button>
+        <div><h3><button className="admin-title-link" onClick={()=>setDraft({...d})}>{d.question}</button></h3><p>{d.option_a} / {d.option_b} · {d.status==='published'?'공개':'보관'}</p><small>{new Date(d.created_at).toLocaleDateString('ko-KR')} 등록</small></div>
+        <div className="rowactions"><button className="secondary" onClick={()=>setDraft({...d})}><Pencil size={16}/>편집</button></div>
+      </div>)}</div>}
     </section>
   );
 }

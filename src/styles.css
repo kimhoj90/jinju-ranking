@@ -3298,7 +3298,7 @@ select {
 }
 .tv-screen {
   background: #090d0c;
-  aspect-ratio: 4/3;
+  aspect-ratio: 16/9;
   border-radius: 20px;
   overflow: hidden;
   box-shadow:
@@ -3583,3 +3583,23 @@ select {
   .ranking-card-actions > a,
   .ranking-card-actions > button { font-size: 12px; gap: 3px; }
 }
+
+/* VS 위치는 이름 칸(36px)을 제외한 사진의 중심이다. */
+.auto-thumbnail > b { top: calc((100% - 36px) / 2); }
+.adminlist > div > .admin-thumbnail { display: block; width: 112px; height: 84px; overflow: hidden; flex-shrink: 0; padding: 0; }
+.admin-thumbnail .auto-thumbnail { height: 100%; }
+.admin-title-link { padding: 0; text-align: left; font: inherit; color: inherit; }
+.duel-editor-thumb { width: 240px; max-width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 8px; }
+.duel-choice-comments .commentlist li { padding: 8px 0; }
+.duel-choice-comments .commentlist p { margin: 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+.duel-choice-comments .commentlist strong { margin-right: 7px; font-size: 13px; }
+.duel-choice-comments .commentlist small { font-size: 11px; color: var(--muted); }
+.tv-screen a { position: relative; }
+/* hqdefault는 4:3 파일 안에 레터박스를 포함하므로 가운데 16:9 영역만 표시한다. */
+.tv-screen img { position: absolute; width: 100%; height: 133.333%; top: -16.666%; left: 0; }
+.tv-video-title { position: absolute; top: 0; left: 0; right: 0; padding: 8px; background: #000c; color: white; font-size: 12px; opacity: 0; pointer-events: none; }
+.tv-screen a:hover .tv-video-title, .tv-screen a:focus .tv-video-title { opacity: 1; }
+
+.admin-detail-link { flex: 1; min-width: 0; color: inherit; text-decoration: none; }
+.duel-thumbnail > .ranking-thumb-image { position: absolute; inset: 0; }
+.roundbadge { z-index: 2; }

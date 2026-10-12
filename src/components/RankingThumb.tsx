@@ -28,7 +28,7 @@ export default function RankingThumb({
   }
   const withPhoto = cup.candidates.filter((c) => c.active !== false && c.image_url);
   const byStats = (stats?.top_ids ?? []).map((id) => withPhoto.find((c) => c.id === id)).filter((c): c is NonNullable<typeof c> => !!c);
-  const pair = (byStats.length >= 2 ? byStats : randomCandidates).slice(0, 2);
+  const pair = ((stats?.completions ?? 0) > 0 && byStats.length >= 2 ? byStats : randomCandidates).slice(0, 2);
   if (!pair.length) {
     return <span className="no-ranking-image">사진을 등록해주세요</span>;
   }

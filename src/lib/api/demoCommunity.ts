@@ -152,7 +152,7 @@ export function demoCommunity(user: () => string, admin: () => string) {
         d = communityData();
       if (!d.duels.some((x) => x.id === id && x.status === 'published')) throw Error('voting_closed');
       d.votes[id] ??= {};
-      if (d.votes[id][u]) throw Error('already_voted');
+      if (d.votes[id][u] && d.votes[id][u] !== choice) d.duelComments = (d.duelComments ?? []).filter(c => !(c.duel_id === id && c.user_id === u));
       d.votes[id][u] = choice;
       save(d);
       return result(id);

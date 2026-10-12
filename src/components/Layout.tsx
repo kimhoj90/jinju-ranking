@@ -12,12 +12,13 @@ const WORDMARK = '/images/jinju-wordmark-v2.png';
 
 function AdStrip({ ads }: { ads: AdBanner[] }) {
   const { openModal } = useUi();
+  const today = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const slots = [1, 2, 3, 4].map((slot) => ads.find((a) => a.slot === slot));
   return (
     <section className="adstrip wrap" aria-label="지역 광고">
       <div className="adgrid">
         {slots.map((ad, i) =>
-          ad?.active && ad.image_url ? (
+          ad?.active && ad.image_url && (!ad.starts_on || today >= ad.starts_on) && (!ad.ends_on || today <= ad.ends_on) ? (
             <div className="adslot filled" key={i}>
               {ad.link_url ? (
                 <a href={ad.link_url} target="_blank" rel="noopener noreferrer sponsored" aria-label={`${ad.title || '광고'} 새 창으로 열기`}>
@@ -95,7 +96,7 @@ export default function Layout() {
             </NavLink>
             <NavLink to="/surveys">설문조사</NavLink>
             <NavLink to="/records">진주기록</NavLink>
-            <NavLink to="/tv">요즘 유튜브 뭐봄</NavLink>
+            <NavLink to="/tv">요즘 유튭 뭐 봄?</NavLink>
           </div>
           {user ? (
             <button className="topnav-login" onClick={() => openModal({ type: 'account' })}>

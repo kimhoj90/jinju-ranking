@@ -202,8 +202,9 @@ export function createSupabaseApi(url: string, key: string): Api {
         sb.from('ad_banners').select('*').order('slot'),
         sb.from('site_settings').select('contact_email').eq('id', 1).maybeSingle(),
       ]);
+      const contacts = await sb.from('ad_contacts').select('slot,contact');
       return {
-        ads: (check(ads) as AdBanner[]) ?? [],
+        ads: ((check(ads) as AdBanner[]) ?? []).map(a=>({...a,contact:contacts.data?.find(c=>c.slot===a.slot)?.contact ?? ''})),
         settings: {
           contact_email: (check(settings) as { contact_email: string } | null)?.contact_email ?? '',
         },
@@ -352,10 +353,11 @@ export function createSupabaseApi(url: string, key: string): Api {
     },
 
     async uploadMedia(blob, folder) {
-      const path = `${folder}/${crypto.randomUUID()}.webp`;
+      const gif = folder === 'banners' && blob.type === 'image/gif';
+      const path = `${folder}/${crypto.randomUUID()}.${gif ? 'gif' : 'webp'}`;
       check(
         await sb.storage.from('media').upload(path, blob, {
-          contentType: 'image/webp',
+          contentType: gif ? 'image/gif' : 'image/webp',
           cacheControl: '31536000',
         }),
       );
@@ -413,9 +415,12 @@ export function createSupabaseApi(url: string, key: string): Api {
               image_url: ad.image_url,
               link_url: ad.link_url.trim(),
               active: ad.active,
+              starts_on: ad.starts_on || null,
+              ends_on: ad.ends_on || null,
             })
             .eq('slot', ad.slot),
         );
+        check(await sb.from('ad_contacts').upsert({slot:ad.slot,contact:ad.contact?.trim() ?? ''}));
       }
       check(await sb.from('site_settings').update({ contact_email: settings.contact_email.trim() }).eq('id', 1));
     },
