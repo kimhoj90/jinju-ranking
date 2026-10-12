@@ -587,8 +587,10 @@ function AdsTab() {
     setUploading(slot);
     setError('');
     try {
-      if (file.type === 'image/gif' && file.size > 2 * 1024 * 1024) throw Error('GIF는 2MB 이하로 올려주세요.');
-      const blob = file.type === 'image/gif' ? file : await compressImage(file, IMAGE_PRESETS.banner);
+      // GIF와 WebP는 프레임이 소실되지 않도록 원본을 보존한다.
+      const preserveOriginal = file.type === 'image/gif' || file.type === 'image/webp';
+      if (preserveOriginal && file.size > 2 * 1024 * 1024) throw Error('GIF와 WebP는 2MB 이하로 올려주세요.');
+      const blob = preserveOriginal ? file : await compressImage(file, IMAGE_PRESETS.banner);
       setAd(slot, { image_url: await api.uploadMedia(blob, 'banners') });
     } catch (e) {
       setError(friendlyError(e));
@@ -621,7 +623,7 @@ function AdsTab() {
     <section className="adsettings editor">
       <h2>광고 배너</h2>
       <p className="muted">
-        상단 왼쪽부터 1~4번 순서로 보여요. 이미지와 클릭할 주소를 등록하고 「노출」을 켜주세요. 권장 제작 크기는 640×200px (기본 320×100px)입니다. JPG·PNG·WebP·GIF를 지원하며 GIF는 2MB 이하로 올려주세요.
+        상단 왼쪽부터 1~4번 순서로 보여요. 이미지와 클릭할 주소를 등록하고 「노출」을 켜주세요. 권장 제작 크기는 640×200px (기본 320×100px)입니다. JPG·PNG·WebP·GIF를 지원하며 GIF·WebP는 2MB 이하로 올려주세요.
       </p>
       <div className="adeditgrid">
         {config.ads.map((ad) => (

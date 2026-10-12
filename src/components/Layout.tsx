@@ -27,7 +27,6 @@ function AdStrip({ ads }: { ads: AdBanner[] }) {
               ) : (
                 <img src={ad.image_url} alt={ad.title} />
               )}
-              <span>광고</span>
             </div>
           ) : (
             <div className="adslot vacant" key={i}>
@@ -58,7 +57,7 @@ export default function Layout() {
   const { ads } = useSite();
   const { openModal } = useUi();
   const path = location.pathname;
-  const isHomeLike = path === '/' || /^\/r\/[^/]+$/.test(path) || path.startsWith('/surveys') || path === '/records';
+  const isHomeLike = path === '/' || /^\/r\/[^/]+$/.test(path) || path.startsWith('/surveys') || path === '/records' || path === '/tv';
   const isPlay = /^\/r\/[^/]+\/play$/.test(path);
 
   // 홈과 랭킹 시작 창 사이를 오갈 때는 스크롤을 유지하고, 다른 화면으로 가면 맨 위로

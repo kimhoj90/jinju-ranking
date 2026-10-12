@@ -164,7 +164,6 @@ export default function YouTubeTv() {
       {reportComplete && <Modal onClose={()=>setReportComplete(false)} label="신고 접수 완료"><p>신고가 정상적으로 접수되었습니다. 검토 후 조치하겠습니다.</p><button className="primary full" onClick={()=>setReportComplete(false)}>확인</button></Modal>}
       <div className="wrap">
         <header className="tv-heading">
-          <span>JINJU PEOPLE’S CHANNELS</span>
           <h1>요즘 유튭 뭐 봄?</h1>
           <p>이번 주 당신이 재밌게 본 한 편</p>
         </header>
