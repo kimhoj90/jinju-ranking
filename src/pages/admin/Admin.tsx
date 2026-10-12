@@ -106,7 +106,7 @@ function RankingsTab() {
               <Link className="admin-detail-link" to={`/admin/rankings/${cup.id}`}>
                 <h3>{cup.title}</h3>
                 <p>
-                  <span className={'statuschip ' + cup.status}>{STATUS_LABEL[cup.status]}</span> · {cup.candidates.length}개 후보
+                  <span className={'statuschip ' + cup.status}>{STATUS_LABEL[cup.status]}</span> · {cup.candidates.length}개 후보 · 순위 반영 {num(s?.participants ?? 0)}표
 
                 </p>
                 <dl className="ranking-stats">
@@ -121,10 +121,6 @@ function RankingsTab() {
                   <div>
                     <dt>참여자 수</dt>
                     <dd>{num(s?.completions ?? 0)}명</dd>
-                  </div>
-                  <div>
-                    <dt>순위 반영</dt>
-                    <dd>{num(s?.participants ?? 0)}표</dd>
                   </div>
                   <div>
                     <dt>댓글 수</dt>

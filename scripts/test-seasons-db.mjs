@@ -30,6 +30,8 @@ await db.exec(readFileSync(new URL('../supabase/migrations/20261012_seasons_reco
 await db.exec(readFileSync(new URL('../supabase/migrations/20261012_seasons_records.sql', import.meta.url), 'utf8'));
 await db.exec(readFileSync(new URL('../supabase/migrations/20261012_media_duel_updates.sql', import.meta.url), 'utf8'));
 await db.exec(readFileSync(new URL('../supabase/migrations/20261012_media_duel_updates.sql', import.meta.url), 'utf8'));
+await db.exec(readFileSync(new URL('../supabase/migrations/20261012_engagement.sql', import.meta.url), 'utf8'));
+await db.exec(readFileSync(new URL('../supabase/migrations/20261012_engagement.sql', import.meta.url), 'utf8'));
 let tests = 0;
 const q = async (s, p) => (await db.query(s, p)).rows;
 const ids = Array.from({ length: 16 }, (_, i) => `00000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`);
@@ -183,4 +185,27 @@ ok((await as(a,()=>q("update duels set thumbnail_url='https://example.com/a.jpg'
 await as(admin,()=>q("update duels set thumbnail_url='https://example.com/a.jpg' where id=$1",[duel]));
 ok((await as(null,()=>q('select thumbnail_url from duels where id=$1',[duel])))[0].thumbnail_url==='https://example.com/a.jpg','관리자 썸네일 저장 및 공개');
 console.log(`media/season DB checks: ${tests} passed`);
+
+await rpc(null,'record_duel_view',[duel,'visitor-example']);
+await rpc(null,'record_duel_view',[duel,'visitor-example']);
+await rpc(null,'record_duel_view',[duel,'visitor-second']);
+const metric=(await rpc(admin,'admin_duel_stats')).find(x=>x.id===duel);
+ok(metric.views===2 && metric.participants===3 && metric.comments===2,'양자택일 조회 중복 제거/참여/댓글 집계');
+await reject(a,'select admin_duel_stats()',[],/admin_only/);
+await rpc(a,'recommend_video',['https://youtu.be/abcdefghijk']);
+const vid=(await rpc(null,'tv_page')).items[0].id;
+await reject(null,'select react_video($1,$2)',[vid,'like'],/permission denied/);
+await rpc(a,'react_video',[vid,'like']);await rpc(a,'react_video',[vid,'like']);
+await rpc(b,'react_video',[vid,'like']);
+let tv=(await rpc(a,'tv_page')).items[0];
+ok(tv.likes===2&&tv.dislikes===0&&tv.reaction==='like','계정당 반응 하나/두 계정 합계');
+await rpc(a,'react_video',[vid,'dislike']);tv=(await rpc(a,'tv_page')).items[0];
+ok(tv.likes===1&&tv.dislikes===1&&tv.reaction==='dislike','반응 전환 시 이전 반응 제거');
+await rpc(a,'react_video',[vid,null]);tv=(await rpc(a,'tv_page')).items[0];
+ok(tv.likes===1&&tv.dislikes===0&&tv.reaction===null,'반응 취소 및 다시 조회');
+ok((await rpc(null,'tv_page')).items[0].reaction===null,'비로그인 개별 반응 비공개');
+await reject(a,'select * from tv_reactions',[],/permission denied/);
+await reject(a,'select react_video($1,$2)',[vid,'invalid'],/invalid_choice/);
+console.log(`engagement DB checks: ${tests} passed`);
+
 await db.close();

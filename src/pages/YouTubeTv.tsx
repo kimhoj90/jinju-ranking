@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import Modal from '../components/Modal';
 import LoginPrompt from '../components/LoginPrompt';
 import { useAuth } from '../context/AppContext';
 import { api } from '../lib/api';
 import { youtubeId } from '../lib/community';
 import { friendlyError } from '../lib/errors';
 import type { TvEligibility, TvItem, TvPage } from '../lib/types';
-function Tv({ item, onReport }: { item?: TvItem; onReport: (id: number) => Promise<void> }) {
+function Tv({ item, onReport, onReact }: { item?: TvItem; onReport: (id: number) => Promise<void>; onReact: (id:number,reaction:'like'|'dislike'|null)=>Promise<void> }) {
   const [failed, setFailed] = useState(false),
     [busy, setBusy] = useState(false);
   const [title,setTitle] = useState('');
@@ -45,6 +47,11 @@ function Tv({ item, onReport }: { item?: TvItem; onReport: (id: number) => Promi
       <div className="tv-controls">
         <span className="tv-nickname">{item && !off ? item.nickname : 'JINJU TV'}</span>
         <i aria-hidden="true" />
+        {item && !off && <div className="tv-reactions">
+          {(['like','dislike'] as const).map(kind=><button key={kind} disabled={busy} aria-label={kind==='like'?'좋아요':'싫어요'} aria-pressed={item.reaction===kind} onClick={async()=>{setBusy(true);try{await onReact(item.id,item.reaction===kind?null:kind);}finally{setBusy(false);}}}>
+            {kind==='like'?<ThumbsUp size={14}/>:<ThumbsDown size={14}/>}<span>{kind==='like'?(item.likes??0):(item.dislikes??0)}</span>
+          </button>)}
+        </div>}
         {item && !off && (
           <button
             disabled={busy}
@@ -54,7 +61,6 @@ function Tv({ item, onReport }: { item?: TvItem; onReport: (id: number) => Promi
                 await onReport(item.id);
                 return;
               }
-              if (!confirm('이 영상을 신고할까요?')) return;
               setBusy(true);
               try {
                 await onReport(item.id);
@@ -71,6 +77,7 @@ function Tv({ item, onReport }: { item?: TvItem; onReport: (id: number) => Promi
   );
 }
 export default function YouTubeTv() {
+  const [reportComplete,setReportComplete] = useState(false);
   const { user, profile } = useAuth();
   const [page, setPage] = useState<TvPage | null>(null),
     [eligibility, setEligibility] = useState<TvEligibility | null>(null),
@@ -88,7 +95,7 @@ export default function YouTubeTv() {
   }, []);
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, user]);
   const refreshEligibility = useCallback(async () => {
     setEligibility(null);
     if (user)
@@ -136,6 +143,7 @@ export default function YouTubeTv() {
       setBusy(false);
     }
   };
+  const react = async(id:number,reaction:'like'|'dislike'|null)=>{if(!user){setError('좋아요·싫어요는 로그인 후 사용할 수 있어요.');return;}try{await api.reactVideo(id,reaction);await load(page?.page);}catch(e){setError(friendlyError(e));}};
   const report = async (id: number) => {
     if (!user) {
       setError('신고하려면 먼저 로그인해주세요.');
@@ -144,13 +152,14 @@ export default function YouTubeTv() {
     try {
       await api.reportVideo(id);
       await load(page?.page);
-      setNotice('신고를 접수했어요.');
+      setReportComplete(true);
     } catch (e) {
       setError(friendlyError(e));
     }
   };
   return (
     <main className="tv-page">
+      {reportComplete && <Modal onClose={()=>setReportComplete(false)} label="신고 접수 완료"><p>신고가 정상적으로 접수되었습니다. 검토 후 조치하겠습니다.</p><button className="primary full" onClick={()=>setReportComplete(false)}>확인</button></Modal>}
       <div className="wrap">
         <header className="tv-heading">
           <span>JINJU PEOPLE’S CHANNELS</span>
@@ -202,7 +211,7 @@ export default function YouTubeTv() {
         )}
         <section className="tv-wall" aria-label="추천 영상 TV 12대">
           {Array.from({ length: 12 }, (_, i) => (
-            <Tv key={page?.items[i]?.id ?? `empty-${page?.page}-${i}`} item={page?.items[i]} onReport={report} />
+            <Tv key={page?.items[i]?.id ?? `empty-${page?.page}-${i}`} item={page?.items[i]} onReport={report} onReact={react} />
           ))}
         </section>
         {page && (

@@ -88,6 +88,9 @@ export function createSupabaseApi(url: string, key: string): Api {
     async cancelProposal(id) {
       check(await sb.rpc('cancel_proposal', { p_id: id }));
     },
+    async adminDuelStats() {return check(await sb.rpc('admin_duel_stats'));},
+    async recordDuelView(id,visitor) {check(await sb.rpc('record_duel_view',{p_id:id,p_visitor:visitor}));},
+    async reactVideo(id,reaction) {check(await sb.rpc('react_video',{p_id:id,p_reaction:reaction}));},
     async listDuels() {
       return check(await sb.from('duels').select('*').order('created_at', { ascending: false })) ?? [];
     },

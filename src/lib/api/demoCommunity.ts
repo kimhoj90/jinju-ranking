@@ -3,6 +3,8 @@ import type { Api } from './types';
 import { demoWeek, validNickname, youtubeId } from '../community';
 const KEY = 'jr:demo-community-v1';
 interface Data {
+  duelViews?: Record<string,string[]>;
+  reactions?: Record<string,Record<string,'like'|'dislike'>>;
   profiles: Record<string, Profile>;
   duelComments?: (DuelComment & { user_id: string; duel_id: string })[];
   records?: RecordArticle[];
@@ -141,6 +143,9 @@ export function demoCommunity(user: () => string, admin: () => string) {
       d.likes[id] = liked ? [...new Set([...likes, u])] : likes.filter((x) => x !== u);
       save(d);
     },
+    async adminDuelStats() {admin();const d=communityData();return d.duels.map(x=>({id:x.id,views:d.duelViews?.[x.id]?.length??0,participants:Object.keys(d.votes[x.id]??{}).length,comments:(d.duelComments??[]).filter(c=>c.duel_id===x.id).length}));},
+    async recordDuelView(id,visitor) {const d=communityData();if(!d.duels.some(x=>x.id===id&&x.status==='published'))return;d.duelViews??={};d.duelViews[id]??=[];const key=visitor+'|'+new Date(Date.now()+9*3600000).toISOString().slice(0,10);if(!d.duelViews[id].includes(key))d.duelViews[id].push(key);save(d);},
+    async reactVideo(id,reaction) {const u=member(),d=communityData();if(!d.videos.some(v=>v.id===id&&!['hidden','deleted'].includes(v.moderation)))throw Error('not_found');d.reactions??={};d.reactions[id]??={};if(reaction===null)delete d.reactions[id][u];else d.reactions[id][u]=reaction;save(d);},
     async listDuels() {
       return communityData().duels;
     },
@@ -185,6 +190,9 @@ export function demoCommunity(user: () => string, admin: () => string) {
             video_id: off ? null : v.video_id,
             nickname: off ? '' : d.profiles[v.user_id]?.nickname || '닉네임 미설정',
             off,
+            likes: Object.values(d.reactions?.[v.id]??{}).filter(x=>x==='like').length,
+            dislikes: Object.values(d.reactions?.[v.id]??{}).filter(x=>x==='dislike').length,
+            reaction: (()=>{try{return d.reactions?.[v.id]?.[user()]??null;}catch{return null;}})(),
           };
         }),
       };
@@ -284,6 +292,9 @@ export function demoCommunity(user: () => string, admin: () => string) {
     | 'tvEligibility'
     | 'recommendVideo'
     | 'reportVideo'
+    | 'reactVideo'
+    | 'recordDuelView'
+    | 'adminDuelStats'
     | 'adminTv'
     | 'adminModerateVideo'
     | 'adminAccounts'

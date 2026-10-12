@@ -239,6 +239,7 @@ export interface CommunitySettings {
   nickname_days: number;
   report_threshold: number;
 }
+export interface DuelStats { id: string; views: number; participants: number; comments: number; }
 export interface Duel {
   thumbnail_url?: string;
   id: string;
@@ -258,6 +259,9 @@ export interface DuelResult {
   total?: number;
 }
 export interface TvItem {
+  likes?: number;
+  dislikes?: number;
+  reaction?: 'like' | 'dislike' | null;
   id: number;
   video_id: string | null;
   nickname: string;

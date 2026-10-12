@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Play, BarChart3, Share2 } from 'lucide-react';
+import { visitorId } from '../lib/local';
 import { shareLink } from '../lib/share';
 import { useUi } from '../context/AppContext';
 import LoginPrompt from '../components/LoginPrompt';
@@ -10,6 +11,7 @@ import { friendlyError } from '../lib/errors';
 import type { Duel as DuelType, DuelResult, DuelComment } from '../lib/types';
 export default function Duel() {
   const { id } = useParams();
+  useEffect(()=>{if(id)void api.recordDuelView(id,visitorId()).catch(()=>{});},[id]);
   const { user, profile } = useAuth();
   const [comments, setComments] = useState<DuelComment[]>([]),
     [body, setBody] = useState('');

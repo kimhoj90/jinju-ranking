@@ -5,7 +5,7 @@ import { formatDate } from '../../lib/format';
 import { compressImage } from '../../lib/image';
 import { api } from '../../lib/api';
 import { friendlyError } from '../../lib/errors';
-import type { AccountRow, AdminTv, CommunitySettings, Duel, DuelDraft } from '../../lib/types';
+import type { AccountRow, AdminTv, CommunitySettings, Duel, DuelDraft, DuelStats } from '../../lib/types';
 const blank: DuelDraft = {
   thumbnail_url: '',
   question: '',
@@ -16,15 +16,15 @@ const blank: DuelDraft = {
   status: 'published',
 };
 export function DuelsAdmin() {
+  const [metrics,setMetrics] = useState<Record<string,DuelStats>>({});
   const [rows, setRows] = useState<Duel[]>([]),
     [draft, setDraft] = useState<DuelDraft | null>(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
   const load = useCallback(
     () =>
-      api
-        .listDuels()
-        .then(setRows)
+      Promise.all([api.listDuels(),api.adminDuelStats()])
+        .then(([rows,stats])=>{setRows(rows);setMetrics(Object.fromEntries(stats.map(s=>[s.id,s])));})
         .catch((e) => setError(friendlyError(e))),
     [],
   );
@@ -53,7 +53,7 @@ export function DuelsAdmin() {
         <div className="manageactions">
           <button className="primary" onClick={() => setDraft({ ...blank })}><Plus size={16}/> 새 양자택일</button>
         </div>
-        <p className="muted stats-note">썸네일이나 제목을 누르면 편집할 수 있어요. 공개된 양자택일은 홈에 표시되고, 보관하면 투표가 종료돼요.</p>
+        <p className="muted stats-note">조회수는 브라우저별 하루 1회, 참여자 수는 투표한 계정 수, 댓글 수는 현재 등록된 의견 수예요.</p>
       </>}
       {draft && (
         <form className="contactform community-editor" onSubmit={save}>
@@ -119,8 +119,9 @@ export function DuelsAdmin() {
           <p><span className={'statuschip '+d.status}>{d.status==='published'?'공개':'보관'}</span> · 2개 선택지</p>
           <dl className="ranking-stats">
             <div><dt>업로드 날짜</dt><dd>{formatDate(d.created_at)}</dd></div>
-            <div><dt>선택지 A</dt><dd>{d.option_a}</dd></div>
-            <div><dt>선택지 B</dt><dd>{d.option_b}</dd></div>
+            <div><dt>조회수</dt><dd>{metrics[d.id]?.views ?? 0}회</dd></div>
+            <div><dt>참여자 수</dt><dd>{metrics[d.id]?.participants ?? 0}명</dd></div>
+            <div><dt>댓글 수</dt><dd>{metrics[d.id]?.comments ?? 0}개</dd></div>
           </dl>
         </div>
         <div className="rowactions">

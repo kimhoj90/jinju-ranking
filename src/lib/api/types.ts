@@ -44,6 +44,9 @@ export interface Api {
   setCommentLike(id: string, liked: boolean): Promise<void>;
   myProposals(): Promise<Proposal[]>;
   cancelProposal(id: string): Promise<void>;
+  adminDuelStats(): Promise<import('../types').DuelStats[]>;
+  recordDuelView(id: string, visitor: string): Promise<void>;
+  reactVideo(id: number, reaction: 'like' | 'dislike' | null): Promise<void>;
   listDuels(): Promise<Duel[]>;
   duelResult(id: string): Promise<DuelResult>;
   voteDuel(id: string, choice: 'A' | 'B'): Promise<DuelResult>;

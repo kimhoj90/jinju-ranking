@@ -216,9 +216,7 @@ export default function Home() {
                     <RankingThumb cup={cup} stats={stats[cup.id]} eager={i < 4} />
 
                     <span className="roundbadge">최대 {roundLabel(availableRounds(cup.candidates.length).at(-1) ?? 4)}</span>
-                    <span className="hoverplay">
-                      플레이하기 <ArrowUpRight size={20} />
-                    </span>
+
                   </div>
                   <div className="cardcopy">
                     <h3>{cup.title}</h3>
